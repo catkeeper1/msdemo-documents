@@ -5,7 +5,7 @@
 Overview
 ====================
 This document is an reference about how to write a document in this repository. 
-If you are new to this project and you are editing a document, please keep this document openning.
+If you are new to this project and you are editing a document, please keep this document opening.
     
 Table of content:
 [TOC]

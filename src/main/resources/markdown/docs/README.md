@@ -84,7 +84,7 @@ Since one document can be synchronized with multiple locations, you can list and
 
 ``` java
 public class classA { 
-      
+      int i;
 }
 ```
 
@@ -271,3 +271,5 @@ cond(no)->op
   [6]: http://highlightjs.org/
   [7]: http://bramp.github.io/js-sequence-diagrams/
   [8]: http://adrai.github.io/flowchart.js/
+
+

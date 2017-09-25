@@ -16,7 +16,7 @@
                 <version>0.22.14</version>
                 <executions>
                     <execution>
-                        <phase>process-resources</phase>
+                        <phase>compile</phase>
                         <goals>
                             <goal>generate</goal>
                         </goals>
@@ -53,15 +53,15 @@
 
                     <execution>
                         <id>copy-resources-for-documents</id>
-                        <phase>process-resources</phase>
+                        <phase>compile</phase>
                         <configuration>
                             <target>
 
                                 <copy todir="${project.basedir}/target/html"
                                       preservelastmodified="true" verbose="true">
                                     <fileset dir="${project.basedir}/src/main/resources/markdown">
-                                        <include name="/common/css/**/*"/>
-                                        <include name="/common/fonts/**/*"/>
+                                        <include name="common/css/**/*"/>
+                                        <include name="common/fonts/**/*"/>
                                     </fileset>
                                 </copy>
 

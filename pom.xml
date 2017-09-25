@@ -62,6 +62,7 @@
                                     <fileset dir="${project.basedir}/src/main/resources/markdown">
                                         <include name="common/css/**/*"/>
                                         <include name="common/fonts/**/*"/>
+                                        <include name="common/js/**/*"/>
                                     </fileset>
                                 </copy>
 

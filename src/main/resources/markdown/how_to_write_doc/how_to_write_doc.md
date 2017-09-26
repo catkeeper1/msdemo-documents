@@ -11,8 +11,8 @@ Table of content:
 [TOC]
 
 ##Create An Document
-The first step for creating an document is creating a folder for this document. The name of this folder
-should reflect the subject of the document. The name of this folder should match regular expression
+The first step for creating an document is creating a folder for this document under `src/main/resources/markdown` 
+or its sub folder. The name of this folder should reflect the subject of the document and match regular expression
 `^[a-z|A-Z|0-9|_]*$`. For example, the folder name for this document is "how_to_write_doc". This folder should
 include all material for this document. Such as, markdown files, CSS files and images.
 
@@ -23,5 +23,27 @@ hyperlink. However, this approach is not recommended because the "table of conte
 properly.
 
 ##How To Use Markdown
+###Why "Markdown" Is Used
+"Markdown" is a lightweight markup language with plain text formatting syntax. "Markdown" is choose as documentation 
+format because:
+* The data of markdown document is stored in text format. It is very version control system friendly. Once an version
+ control system is used to trace all adjustments, people do not need to use colors to highlight the parts that they
+ have adjusted as they did for MS words document.
+* "Markdown" is very simple. It is easy to read and edit. Furthermore, it is simple enough for people to learn the 
+  syntax soon. 
+* It is different from MS words that user need to use mouse to choose texts and change the format of those texts by 
+  clicking some buttons or menu items. In "markdown", user only need to use keyboard to type something to mark the
+  texts. This approach can improve the productivity of documentation.
+* "Markdown" is very popular. There are many editors are available in all platform. 
+* "Markdown" can be translated into other format(such as, HTML) easily. That means, it is very easy to distribute 
+ documents that are written in "markdown".
+* "Markdown" is opened for extension. For example, programming language syntax highlighting is supported by the 
+   documents in this repository. This feature is not supported by standard "markdown" syntax. The magic is that
+   documents in this repository are translated into HTML by "flexmark". "Flexmark" can translate "` ``` ... ``` `" 
+   into "`<pre><code> ... </code></pre>" 
 
-###Why Markdown
+###Syntax Reference
+
+
+###Syntax Exercise
+[Markdown Tutorial](https://www.markdowntutorial.com/)

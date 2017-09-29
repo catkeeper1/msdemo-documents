@@ -26,6 +26,7 @@ properly.
 ###Why "Markdown" Is Used
 "Markdown" is a lightweight markup language with plain text formatting syntax. "Markdown" is choose as documentation 
 format because:
+
 * The data of markdown document is stored in text format. It is very version control system friendly. Once an version
  control system is used to trace all adjustments, people do not need to use colors to highlight the parts that they
  have adjusted as they did for MS words document.
@@ -37,13 +38,12 @@ format because:
 * "Markdown" is very popular. There are many editors are available in all platform. 
 * "Markdown" can be translated into other format(such as, HTML) easily. That means, it is very easy to distribute 
  documents that are written in "markdown".
-* "Markdown" is opened for extension. For example, programming language syntax highlighting is supported by the 
-   documents in this repository. This feature is not supported by standard "markdown" syntax. The magic is that
-   documents in this repository are translated into HTML by "flexmark". "Flexmark" can translate "` ``` ... ``` `" 
-   into "`<pre><code> ... </code></pre>" 
+ 
 
 ###Syntax Reference
 
 
 ###Syntax Exercise
 [Markdown Tutorial](https://www.markdowntutorial.com/)
+
+

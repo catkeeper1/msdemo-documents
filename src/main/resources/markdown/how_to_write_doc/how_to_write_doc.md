@@ -8,7 +8,7 @@ This document is an reference about how to write a document in this repository.
 If you are new to this project and you are editing a document, please keep this document opening.
     
 Table of content:
-[TOC]
+[TOC levels=2-4]
 
 ##Create An Document
 The first step for creating an document is creating a folder for this document under `src/main/resources/markdown` 

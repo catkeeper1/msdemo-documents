@@ -39,7 +39,7 @@
 
                     </attributes>
                     <pegdownExtensions>
-                        SMARTS,QUOTES,TABLES,FENCED_CODE_BLOCKS,AUTOLINKS,TOC,ANCHORLINKS
+                        SMARTS,QUOTES,TABLES,FENCED_CODE_BLOCKS,AUTOLINKS,TOC,ANCHORLINKS,STRIKETHROUGH
                     </pegdownExtensions>
                 </configuration>
             </plugin>

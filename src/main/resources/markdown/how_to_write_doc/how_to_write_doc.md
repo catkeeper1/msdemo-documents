@@ -254,9 +254,109 @@ The example above is rendered as below:
 |   Text             |  Number            |      Date          |2012&#124;12&#124;30  |
 |   Text             |  Number            |      Date          |2012&#124;12&#124;29  |
 
+#### Image
+To embeded an image into a document, the image file(can be jpg, png, svg or whatever format
+can be supported by browser) should be placed under the document folder or it's subfolder
+(please refer [How To Create A Document](#create-an-document) ).
+Then, use '![image alt text](the rule for image file)' (image alt text is the text will be placed 
+at the alt tag for a <img/> in HTML) to embed an image in a document.
+For example:
+```markdown
+![image example](./tux.png)
+```
+The example above is rendered as below:
+> ![image example](./tux.png)
+
+#### Horizontal Line
+To create horizontal line, use three or more '*', '-' or '_' in one line.
+For example:
+```markdown
+***
+-----
+_______
+
+```
+
+The example above is rendered as below:
+
+***
+-----
+_______
+
+
+#### Links
+To create a link, `[item will be shown in document](url for the link)` can be used. For example:
+```markdown
+[link to bing](http://www.bing.com)
+
+[![linux image](./tux.png)](https://www.linux.com/)
+
+```
+The example above is rended as below:
+> [link to bing](http://www.bing.com)
+>
+> [![linux image](./tux.png)](https://www.linux.com/)
+
+`< url or email address >` also can be used to create links. For example:
+```markdown
+<https://stackoverflow.com/>
+
+<abc@gmail.com>
+```
+
+The example above is rendered as below:
+> <https://stackoverflow.com/>
+>
+> <abc@gmail.com>
 
 ### Syntax Exercise
-[Markdown Tutorial](https://www.markdowntutorial.com/)
+If you want to do some exercises for markdown, please access [Markdown Tutorial](https://www.markdowntutorial.com/)
 
-###Config
-[vsch maven plugin](https://github.com/vsch/markdown-page-generator-plugin)
+## Document Generation
+After all markdown files and other materials are ready, they can be used to generate the document. First of all, 
+because this repository is managed with maven, please make sure maven has been installed. Please refer 
+[maven install doc](http://maven.apache.org/install.html). Once maven is ready, you can run command 
+`mvn compile` to generated documents and all documents can be found under `target/site/html` folder.
+
+This repository use flexmark plugin to generate HTML document. Please refer 
+[vsch maven plugin](https://github.com/vsch/markdown-page-generator-plugin) in case you need to change 
+settings for document generation.
+
+
+## UML Diagram
+UML is used often to illustrate a software design. In this repository, plantuml is used to draw UML diagram. Just like
+markdown, plantuml files are plant text files so that they are very version control system friendly. Furthermore, 
+author can focus on what they want to express in UML diagram but not something like elements size or elements position.
+Below is an example of plantuml.
+```plantuml
+@startuml
+class Car
+
+Driver - Car : drives >
+Car *- Wheel : have 4 >
+Car -- Person : < owns
+
+@enduml
+```
+
+The UML above looks like:
+
+![class diagram](class_diagram.svg)
+
+To use plantuml diagram in a document, first of all, a file with naming convention 
+'*.puml' (such as abc.puml) should be created. The plantuml codes should be stored in this file.
+Then, use `![abc image](abc.svg)`(all puml file will be converted to svg image format in this repository. For more 
+detail info, please refer the 'plantuml-maven-plugin' plugin in pom.xml file) to embeded this file into document.
+After all materials are ready, run `mvn compile`. The puml files will be converted into svg image files so that they 
+can be shown in documents.
+
+For the syntax of plantuml, please refer [planuml website](http://plantuml.com/sitemap-language-specification).
+Actually, you do not need to memorize the syntax. You just need to open that web site and choose the type of diagram 
+you are working on. Then, this web site will provide a lots of example you can copy.
+
+To make plantuml work, graphviz must be installed. Please refer 
+[graphviz installation](http://plantuml.com/graphviz-dot) about how to install in. Please note that, to make sure the 
+maven plugin know where the graphviz has been installed, environment variable `GRAPHVIZ_DOT` must be set properly. 
+It should point to the `dot` executable command. For example, `d:\graphviz\dot.exe`.
+
+_____________ 

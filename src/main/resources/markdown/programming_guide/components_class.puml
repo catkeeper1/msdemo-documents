@@ -31,16 +31,17 @@ together {
 }
 class FeignClients #skyblue
 
+
+
 together {
 
-    together {
-
-      class Entities  #yellow
-      class Repositories  #yellow
-    }
-    class Daos  #yellow
-
+  class Entities  #yellow
+  class Repositories  #yellow
+  class Daos  #yellow
 }
+
+
+
 
 
 Browsers ..> Controllers : HTTP requests

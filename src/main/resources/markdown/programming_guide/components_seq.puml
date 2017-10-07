@@ -1,0 +1,28 @@
+@startuml
+
+
+
+boundary Browser
+control Interceptors
+control Controllers
+control Services
+control FeignClients
+control RepositoriesOrDaos
+entity Entities
+database DB
+
+Browser -> Interceptors : JSON HTTP Request
+Interceptors -> Interceptors : Security checking
+Interceptors -> Controllers : Parse HTTP request \ninto java objects. \nSuch as, Service Forms
+Controllers -> Services : Launch transaction
+Services -> Services : May call other services
+Services -> FeignClients: May call other micro-service.
+Services -> RepositoriesOrDaos : May call repositories or daos\n to access DB
+RepositoriesOrDaos -> Entities : Retrieve entities
+Entities -> DB : Exchange data
+RepositoriesOrDaos -> Services : Return entities for \nservices to manipulate
+Services -> Controllers : Return value objects. \nSuch as, Views.
+Controllers -> Interceptors : Do some final \nadjustment to data. \nSuch as, update HTTP\n headers.
+Interceptors -> Browser: Return JSON HTTP response.
+
+@enduml

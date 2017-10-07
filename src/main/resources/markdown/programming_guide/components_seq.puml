@@ -1,6 +1,6 @@
 @startuml
 
-
+scale max 1024 width
 
 boundary Browser
 control Interceptors

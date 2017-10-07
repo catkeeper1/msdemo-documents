@@ -75,8 +75,12 @@ for service registration which is widely used in micro-service architecture.
 
 When an HTTP request is sent to a backend service, this request is handled as below:
 ![components sequence diagram](components_seq.svg)
-> **Note**: Because Interceptors are not touched for tasks usually, they are not mentioned in the list above. However,
+
+**Note**: Because Interceptors are not touched for tasks usually, they are not mentioned in the list above. However,
 to illustrate the overall process, it is mentioned in the diagram above.
+
+Below diagram illustrate the relationship between the components mentioned above:
+![components class diagram](components_class.svg)
 
  
 

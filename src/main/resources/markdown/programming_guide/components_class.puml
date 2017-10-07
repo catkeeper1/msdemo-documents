@@ -1,0 +1,70 @@
+@startuml
+
+hide circle
+hide empty member
+
+scale max 800 width
+
+title
+  |= background color     |= meaning                            |
+  | <back:red>red</back>  | belongs to V in MVC pattern         |
+  | <back:lightgreen>light green</back>  | belongs to C in MVC pattern     |
+  | <back:yellow>yellow</back>  | belongs to M in MVC pattern   |
+  | <back:white>white</back>  | value objects   |
+  | <back:skyblue>skyblue</back>  | interfaces   |
+end title
+
+
+together {
+
+  class ServiceForms  #white
+  class Views         #white
+}
+
+
+
+together {
+  class Browsers #red
+  class Controllers  #lightgreen
+  class Services     #yellow
+
+}
+class FeignClients #skyblue
+
+together {
+
+    together {
+
+      class Entities  #yellow
+      class Repositories  #yellow
+    }
+    class Daos  #yellow
+
+}
+
+
+Browsers ..> Controllers : HTTP requests
+
+Controllers ..> Services : call
+Services ..> Services : may call
+Services ..> Repositories : may call
+Services ..> Daos : may call
+Services ..> FeignClients : may call
+
+Daos -> Entities : retrieve
+Entities <- Repositories : retrieve
+Entities --o Entities : link to
+
+Controllers ..> Views
+Controllers ..> ServiceForms
+
+Services ..> Views
+Services ..> ServiceForms
+
+FeignClients ..> Views
+FeignClients ..> ServiceForms
+
+
+
+
+@enduml

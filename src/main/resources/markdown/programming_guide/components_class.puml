@@ -7,12 +7,12 @@ scale max 800 width
 
 
 title
-  |= background color        |= meaning                      |
-  |<#red> red                | belongs to V in MVC pattern   |
-  |<#lightgreen>light green  | belongs to C in MVC pattern   |
-  |<#yellow>yellow           | belongs to M in MVC pattern   |
-  |<#white>white             | value objects                 |
-  |<#skyblue>skyblue         | interfaces                    |
+  |= background color         |= meaning                      |
+  |<#red> red                 | belongs to V in MVC pattern   |
+  |<#lightgreen> light green  | belongs to C in MVC pattern   |
+  |<#yellow> yellow           | belongs to M in MVC pattern   |
+  |<#white> white             | value objects                 |
+  |<#skyblue> skyblue         | interfaces                    |
 end title
 
 
@@ -27,7 +27,7 @@ class Browsers #red
 class Controllers  #lightgreen
 class Services     #yellow
 class Repositories  #yellow
-class Daos  #yellow
+class DAOs  #yellow
 class FeignClients #skyblue
 
 
@@ -40,11 +40,11 @@ Services ..> FeignClients : may call
 
 
 Services ..> Repositories : may call
-Services ..> Daos : may call
+Services ..> DAOs : may call
 Entities <- Repositories : retrieve
 
 
-Daos -> Entities : retrieve
+DAOs -> Entities : retrieve
 
 Entities --o Entities : link to
 

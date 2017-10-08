@@ -19,23 +19,23 @@ program. It implement the C layer of MVC pattern. Usually, it call Services to c
 It may transform the data that is retrieved from Services into a format that can be understood by the caller 
 (such as an browser based frontend application). Usually, Controllers accept request or generate response in JSON
  format(except for the scenarios that need to handle binary data. Such as file upload, generate PDF).
-* Services - Services are used to implement business logic. It call other Services, Repositories or Daos to manipulate 
+* Services - Services are used to implement business logic. It call other Services, Repositories or DAOs to manipulate 
 data in DB. Transaction control should be done in this layer. 
-* Repositories - Spring data is used in this project. Compare with traditional Daos, Spring data can save effort if
+* Repositories - Spring data is used in this project. Compare with traditional DAOs, Spring data can save effort if
 developer just need some simple DB access method. For example, Spring data can provide repositories with default 
 CRUD method for one entity. Developer do not need to code any implementation. Spring data
 also can generate implementation for simple query method for one entity by parsing method names. Developer just need 
 to define that method in repositories interface. Spring data repositories only can be used to do DB access for one
 entity only.
-* Daos - In some scenarios, complicated DB access is needed for some reasons. For example, some query functions may 
-have performance issue if "join table" is not used. In these scenarios, Daos will be used. Daos are used to handle the 
+* DAOs - In some scenarios, complicated DB access is needed for some reasons. For example, some query functions may 
+have performance issue if "join table" is not used. In these scenarios, DAOs will be used. DAOs are used to handle the 
 scenario that need cross-table or cross-entity DB access.
 * Entities - JPA(Implemented with Hibernate) is used for DB access in this project. All DB access should be done through 
 JPA entity except for some special scenarios. For example, an legacy store procedure must be reused becauuse it is too 
 expensive to rebuild it in java. In this case, developer should call JPA EntityManager to access that store procedure. 
 Developer should never by pass JPA(anyway, multiple technologies for one purpose is always not good for application 
 maintenance) until something really cannot be done with JPA or it will cause other issues.
-Please note that, Services, Repositories, Daos and Entities are belong to the M layer of MVC pattern.
+Please note that, Services, Repositories, DAOs and Entities are belong to the M layer of MVC pattern.
 * Service Forms - In some cases, there are many input fields for one transaction. For example, 10 fields need to be 
 input to create an order. It is not a good practise to define those 10 fields as parameters for methods in Controllers
 and Services. An Service Form should be defined for these 10 fields and use this Service Form as parameters for methods
@@ -48,7 +48,7 @@ Service Forms are used to defined the interface between frontend and backend pro
 * Views - It is similar to Service Forms, Views are values objects and they are used to defined the interface
 between frontend and backend. Different from Service Forms that are used as input for Controllers or Services
 , Views are used as output. For example, there is a complicated query function need to retrieve 10 fields from 3 tables.
-An View class that include 10 fields. Services should call Repositories/Daos to retrieve data to fill that View object
+An View class that include 10 fields. Services should call Repositories/DAOs to retrieve data to fill that View object
 and return it to Controllers. Controllers will return this View object with annotation 
 [@ResponseBody](https://docs.spring.io/spring/docs/4.3.10.BUILD-SNAPSHOT/spring-framework-reference/htmlsingle/#mvc-ann-responsebody)   
 to generate JSON to response frontend program. Basically, Views are used to show data in screens and Service Forms are 
@@ -153,22 +153,77 @@ For security reason, `@PreAuthorize` should be used at the beginning of every Co
 is used to tell Spring Security framework what access right that is needed to access this endpoint.
 For the endpoints that only can be access by authorized users, `@PreAuthorize` should be used as below:
 ```java
+    //usually, one endpoint is mapped to one function point.
     @RequestMapping(value = "/user/queryAllUsers", method = RequestMethod.GET)
-    @PreAuthorize("hasPermission('query_all_users', '')")
+    @PreAuthorize("hasPermission(this, '"+FunctionPointConstant.QUERY_ALL_USERS+"')")
     public List<User> queryAllUsers() {
         //...
     }
+    
+    //if an endpoint can be access with multiple function point, they can be combined with "and"/"or"
+    @RequestMapping(value = "/user/queryAllUsers", method = RequestMethod.GET)
+    @PreAuthorize("hasPermission(this, '"+FunctionPointConstant.QUERY_ALL_USERS+"') or hasPermission(this, '"+FunctionPointConstant.TEAM_LEAD+"')")
+    public List<User> queryAllUsers() {
+        //...
+    }    
 ```
-The first parameter of "hasPermission" is the name of function point. Please refer "Security" section about how to
-config function point and assign them to users. The second parameter should be 'AUTHORIZED'.
-If the endpoint can be access by all authenticated user, the first parameter should be '' and the second parameter
-should be 'AUTHENTICATED'. 
+The second parameter of "hasPermission" is the name of function point. Please refer "Security" section about how to
+config function point and assign them to users. 
 
-### Naming Convention
+The default setting is that all HTTP endpoints cannot be access until user is authenticated. This is used to make sure 
+no HTTP endpoint should be protected but it can be access by everyone just because developer forget to assign 
+`@PreAuthorize` annotation to it. So, if `@PreAuthorize` is not specified for a Controllers method, that means all 
+authenticated user can access it. If there is any HTTP endpoint should be access without authentication, the url should 
+be in pattern `/pub/**/*`. If this endpoint cannot use this url pattern, the Spring Security config must be changed to
+add new url pattern for endpoints without any security checking.
 
-#### Java Classes
+Please refer [MVC controller](https://docs.spring.io/spring/docs/4.3.7.RELEASE/spring-framework-reference/htmlsingle/#mvc-controller)
+for more detail info.
+
+### Services
+Services are used to implement business logic. Usually, it call Repositories or DAOs to retrieve data and manipulate 
+data inside it. This layer should be the most complicated part of backend program because most of the logic is in this 
+layer.
+
+To define a Service class, `@Service` annotation should be placed at the beginning of the class. Because Services need 
+to deal with transaction, `@ReadOnlyTransaction` or `@ReadWriteTransaction` should be used for methods that need 
+ transaction. 
+ 
+If a method only read data
+ from DB, `@ReadOnlyTransaction` should be used. Actually, the `@ReadOnlyTransaction` will let the DB konw current 
+ transaction is readonly and the isolation level is READ_UNCOMMITTED. These setting are more optimized for readonly 
+ DB access performance.
+  
+For methods that will write data to DB, `@ReadWriteTransaction` should be used. In this annotation, the isolation level 
+is READ_COMMITTED so that optimistic locking must be used used in Entities. 
+
+Both `@ReadWriteTransaction` and `@ReadOnlyTransaction` provide `propagation` attribute. The default value is 
+REQUIRED. That means, when current method is called, if there is no transaction, start an new transaction. If a 
+transaction has been started, just join the existing transaction. This setting fit the requirement for most of the 
+cases. However, in some cases, this setting is not good for performance. For example, there are 10 thousands of records
+need to be handled in a batch program. If all those records are handled in one transaction, the performance is very 
+bad. Maybe, the transaction will failed because the DB transaction log if full. A better solution is that every 
+transaction only handle 1 record. In this case, propagation REQUIRE_NEW should be used. 
+
+Please refer 
+[isloation level](https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html#transactions_data_integrity)
+and
+[transaction propagation](https://docs.spring.io/spring/docs/4.3.7.RELEASE/spring-framework-reference/htmlsingle/#tx-propagation) 
+for more detail info.
+
+### Repositories
+
+
+### DAOs
+
+
+###
+
+## Naming Convention
+
+### Java Classes
 The name of java classes should be a noun or a noun phrase. All java methods should be an verb or verb phrase.
 
-#### Controllers
+### Controllers
 The naming convention is "{An Noun or an noun phrase} + Controler". They should be placed at a package with naming
 pattern "**/controller".

@@ -216,14 +216,39 @@ for more detail info.
 
 ### DAOs
 
+### Entities
 
-###
+### Views And Service Forms
+
+### Feign Clients
+
 
 ## Naming Convention
 
-### Java Classes
+
 The name of java classes should be a noun or a noun phrase. All java methods should be an verb or verb phrase.
 
-### Controllers
-The naming convention is "{An Noun or an noun phrase} + Controler". They should be placed at a package with naming
-pattern "**/controller".
+
+## Logging
+
+
+## Exception Handling
+
+## Testing
+
+### Mocked Unit Test
+
+### DB Unit Test
+
+### Assembly Test
+
+
+### API Test
+
+
+## Configuration
+
+### Security
+
+### Swagger
+

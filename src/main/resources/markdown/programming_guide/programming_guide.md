@@ -212,6 +212,28 @@ and
 for more detail info.
 
 ### Repositories
+Repositories are used to implement simple DB access method. In this project, Spring Data JPA is used to implement 
+Repositories. To create an Repository, developer do not need to code any method implementation just like what they 
+ did for traditional DAO approach but just define an interface as below steps:
+
+* Define an interface that extend `JpaRepository`
+* The `JpaRepository` has 2 type parameters. The first one should be the Entity that this Repository should handle. 
+Actually, the Repository only can access data about the Entity that is specified here. The second type parameter is 
+the primary key type of the Entity. Usually, it is object type for primitive data type. Such as `java.lang.Spring`, 
+`java.lang.Long`, etc. If the Entity use composite key, the customized composite data type must be specified here.
+Please refer [composite key](http://www.objectdb.com/java/jpa/entity/id#Composite_Primary_Key_) for more detail info 
+about composite key of Entity.
+
+Below is an example:  
+```java
+   
+    public interface UserRepository extends JpaRepository<User, String> {
+    }
+```
+In the example above, even though the interface is empty, it is an Repository that already provide full CRUD method
+for User Entity because it extend `JpaRepository`. Please read the source of `JpaRepository` to find the CRUD methods
+it provide.
+
 
 
 ### DAOs

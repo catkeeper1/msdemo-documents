@@ -247,8 +247,66 @@ it provide.
 
 ## Naming Convention
 
+### Package
 
-The name of java classes should be a noun or a noun phrase. All java methods should be an verb or verb phrase.
+**Should be lowercase and not underscores/dash/uppercase letters.**
+
+* Good: `package org.springframework;`
+* Bad: `package org.springFramework;` and `package org.spring_framework;`
+
+### Class
+**Class and Interfaces names are in UpperCamelCase.The name of java classes should be a noun or a noun phrase.**
+
+* Good: `UserRole`
+* Bad: `userRole`
+
+**Common component class like controller/service/repository should end with component type name**
+
+* controller like `HomeController`
+* service like `UserService`
+* repository `RoleRepository`
+
+**Test classes are named starting with the name of the class they are testing, and ending with `Test`.**
+
+* Good: `HomeController` and `HomeControllerMockTest`
+* Bad: `HomeController` and `HomeControllerMockTests`
+
+**Different kind of test should be indicated in the name.**
+
+* test case that will connect to database. Good: `HomeController` and `HomeControllerDbTest`. Bad: `HomeControllerTest`
+* test case that will use mocking tool.    Good: `HomeController` and `HomeControllerMockTest`. Bad: `HomeControllerTest`
+
+### Method
+**All java methods should be an verb or verb phrase. Method names are written in lowerCamelCase.**
+
+* Good: `adjustQueryString`
+* Bad: `adjustquerystring` or `AdjustQueryString`
+
+**Method names are typically verbs or verb phrases.**
+
+* Good: `configure` or `findPolicyByPolicyNo`
+* Bad: `configuration` or `policyNo`
+
+**Test Method names should start with `testTestMethodName_OtherInfo`**
+
+* Good: `testFindPolicyByPolicyNo` or `testFindPolicyByPolicyNo_found` or `testFindPolicyByPolicyNo_NotFound`
+* Bad: `findPolicyByPolicyNo_found`
+
+### Variable
+**non-constant variable should define in lowerCamelCase.**
+
+* Good: `errorResponse` or `headers`
+* Bad: `ErrorResponse`
+
+**avoid using `is****` for boolean type variable since IDE default getter/setter will become `isGood()`/`setGood(boolean good)`**
+
+* Good: `good`
+* Bad: `isBad`
+
+**all letters of constant variable is uppercase , with words separated by underscores.**
+
+* Good: `ADMIN_SERVICE` or `ADMIN_SERVICE_CONTEXT`
+* Bad: `admin_service`
 
 
 ## Logging

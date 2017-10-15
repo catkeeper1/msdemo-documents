@@ -305,6 +305,8 @@ DB design and deployment documents.
 Please follow below steps to create an Entity:
 
 * Create an value object java class. That means there are only fields and get/set methods in this class.
+* The Entity class should extend `BaseEntity`. This base class provide fields for audit trail and version number for
+optimistic locking.
 * Put `@Entity` and `@Table` annotations at the beginning of this class.
 * In `@Table`, specify the table name.
 * In `@Table`, use `@Index` to define indexes for this table. Actually, JPA do not need this info for DB access. It is
@@ -345,30 +347,37 @@ the `equals()` and `hashcode()` method of the ID class must be implemented prope
     }
 ```
 
+* If an Entity can be linked to another Entity, create an association get method and put `@ManyToMany`, 
+`@ManyToOne`, `@OneToOne` or `@OneToMany` annotation at it. Please refer 
+(relationship)[http://www.objectdb.com/api/java/jpa/annotations/relationship] for more detail. When, association 
+annotation is used, make sure the `cascade` attribute is empty(no entity will be persist until developer make it 
+explicitly) and `fetch` attribute is LAZY(no unexpected DB query will be done automatically.). That means, when 
+`@OneToOne` and `@ManyToOne` is used, the `fetch` attribute must be set to LAZY explicitly.
 
+Please refer the (JPA manual)[http://www.objectdb.com/java/jpa] for detail info about JPA development.
 
 ### Views And Service Forms
 
 ### Feign Clients
 
-
-## Naming Convention
-
-
-The name of java classes should be a noun or a noun phrase. All java methods should be an verb or verb phrase.
-
-
 ## Logging
-
 
 ## Exception Handling
 
 ## Java Doc
 
+## DB Deployment
 
 ## Testing
 
 ### Mocked Unit Test
+Most of the logic should be tested by unit test case because the cost of unit test is cheap. However, most of the 
+programs depends on DB so that unit test cannot be done until something is mocked. So, jmockit is used
+for mocking.
+
+To create an unit test case, a junit test class should be create. The package should be the same as the tested class 
+and the class name is {the name of the tested class} + "MockedTests". 
+
 
 ### DB Unit Test
 
@@ -383,4 +392,9 @@ The name of java classes should be a noun or a noun phrase. All java methods sho
 ### Security
 
 ### Swagger
+
+
+## Naming Convention
+
+The name of java classes should be a noun or a noun phrase. All java methods should be an verb or verb phrase.
 

@@ -235,14 +235,164 @@ for User Entity because it extend `JpaRepository`. Please read the source of `Jp
 it provide.
 
 
-
 ### DAOs
+Sometimes, developer have to access multple entity or table in one QL statement. Otherwise, it will cause performance
+issue. For example, there is a screen need to show a table list. There are many records may be shown in the list and
+ data for each record come from 6 tables. If "JOIN TABLE" is not used, performance issue will be cause. In such cases,
+ DAOs should be used.
+
+To create a DAO, please follow below steps:
+
+* Define a class extend `BaseJpaDao`. The `BaseJpaDao` define `EntityManager` which can be used to access JPA API and
+some util methods that are convenient for DB access.
+* Place `@Repository` at the DAO class that just created. This is a little confused because DAO class use annotation
+`@Repository`. If you check the java doc for `@Repository`, you will find that Spring framework expect DDD-style
+repositories use `@Repository`. However, Spring framework also suggest DAO use this annotation. Otherwise, the
+data access exception translation will not work. This is why `@Repository` is still used here.
+* Define a set method for `this.entityManger`. `@Autowire` can be used for this set method so that Spring container will
+ inject an instance of `EntityManager`. If there are multple instance of `EntityManager` in the Spring container,
+ `@Qualifier` should be used as well or developer can just use java config approach to setup the `this.entityManager`.
+ Anyway, the `this.entityManager` cannot be null for DAOs classes. Below is an example:
+ ```java
+     @Repository
+     public class UserDao extends BaseJpaDao {
+
+         @Autowired
+         public void setEntityManager(EntityManager entityManager) {
+             this.entityManager = entityManager;
+         }
+
+         public List<UserWithRole> queryUsersWithRoles(String userName, String userDesc) {
+             //prepare the QL.
+             String ql =  ...;
+
+             Query query = this.entityManager.createQuery(al);
+             //prepare parameters
+             Map<String, Object> params = new HashMap<>();
+             ...
+             //insert parameter into query object.
+             DbAccessUtil.setQueryParameter(query, params);
+
+             List rawResultList = query.getResultList();
+
+             //define a mapper object that convert the raw result to expected data type.
+             Function<Object[], UserWithRole> mapper = new Function<Object[], UserWithRole>() {
+
+                 @Override
+                 public UserWithRole apply(Object[] row) {
+
+                     UserWithRole view = new UserWithRole();
+
+                     //convert the raw data record to UserWithRole.
+
+                      return view;
+                 }
+
+             };
+
+             List<UserWithRole> resultList = DbAccessUtil.convertRawListToTargetList(rawResultList, mapper);
+
+             return resultList;
+         }
+     }
+ ```
 
 ### Entities
+For every tables, Entity must be created because Entities are not only used for DB access but also used for DB design.
+Developer should design the DB structure by editing the source of Entities. Then, use source of Entities to generate
+DB design and deployment documents.
+
+Please follow below steps to create an Entity:
+
+* Create an value object java class. That means there are only fields and get/set methods in this class.
+* The Entity class should extend `BaseEntity`. This base class provide fields for audit trail and version number for
+optimistic locking.
+* Put `@Entity` and `@Table` annotations at the beginning of this class.
+* In `@Table`, specify the table name.
+* In `@Table`, use `@Index` to define indexes for this table. Actually, JPA do not need this info for DB access. It is
+used to generate liquibase deployment file only
+* Put `@Column` at the get method of a field to specify the column name for that field. Please also specify the value of
+`nullable`, `columnDefinition`, `length`(for string field), `precision` and `scale`(for decimal field) attributes.
+They are used for liquibase deployment file generation. If `columnDefinition` attribute is not specified, the build
+ tool will determine the column data type base on the data type of returned value of the get method. For example,
+ if the get method return `java.lang.String`, the column data type in the generated liquibase file will be
+ `java.sql.Types.VARCHAR` and the data type in DB will be `VARCHAR`. For some cases that need to override this default
+data type, please do specify the value of `columnDefinition`. For example, some string field need NVARCHAR in DB,
+  please sepcify `java.sql.Types.NVARCHAR` in `columnDefinition`. If the DB design need DB specified data type,
+ developer also can specify DB specified data type in this attribute. For example, in Oracle, `XMLType` can be used
+ to store XML but this data type cannot be mapped to any type defined in `java.sql.Types`. In this case, developer
+ can just put `XMLType` in `columnDefinition` and the build tool will not do any translation when it generate the
+ liquibase files. It is not recommended to use DB specified data type in DB design because H2 will be used for
+ DB UT and this kind of DB specified data type may cannot be deployed to H2 memory DB.
+* Put `@Id` at the get method for primary key field. If there are multiple fields for primary key, please refer
+(composite key)[http://www.objectdb.com/java/jpa/entity/id#Composite_Primary_Key_]. Embedded primary key
+should not be used because the build tool still do not support it yet. Please note that, if composite key is used,
+the `equals()` and `hashcode()` method of the ID class must be implemented properly because the Hibernate
+ will use these 2 methods to check objects in first level cache. Please use `java.util.Objects` should be used
+ to implement these 2 methods. Below is an example(they are generated by IDEA):
+```java
+
+@Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(userName, user.userName) &&
+                Objects.equals(userDescription, user.userDescription);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userName, userDescription);
+    }
+```
+
+* If an Entity can be linked to another Entity, create an association get method and put `@ManyToMany`,
+`@ManyToOne`, `@OneToOne` or `@OneToMany` annotation at it. Please refer
+(relationship)[http://www.objectdb.com/api/java/jpa/annotations/relationship] for more detail. When, association
+annotation is used, make sure the `cascade` attribute is empty(no entity will be persist until developer make it
+explicitly) and `fetch` attribute is LAZY(no unexpected DB query will be done automatically.). That means, when
+`@OneToOne` and `@ManyToOne` is used, the `fetch` attribute must be set to LAZY explicitly.
+
+Please refer the (JPA manual)[http://www.objectdb.com/java/jpa] for detail info about JPA development.
 
 ### Views And Service Forms
 
 ### Feign Clients
+
+
+## Logging
+
+## Exception Handling
+
+## Java Doc
+
+## DB Deployment
+
+## Testing
+
+### Mocked Unit Test
+Most of the logic should be tested by unit test case because the cost of unit test is cheap. However, most of the
+programs depends on DB so that unit test cannot be done until something is mocked. So, jmockit is used
+for mocking.
+
+To create an unit test case, a junit test class should be create. The package should be the same as the tested class
+and the class name is {the name of the tested class} + "MockedTests".
+
+
+### DB Unit Test
+
+### Assembly Test
+
+
+### API Test
+
+
+## Configuration
+
+### Security
+
+### Swagger
 
 
 ## Naming Convention
@@ -308,27 +458,4 @@ it provide.
 * Good: `ADMIN_SERVICE` or `ADMIN_SERVICE_CONTEXT`
 * Bad: `admin_service`
 
-
-## Logging
-
-
-## Exception Handling
-
-## Testing
-
-### Mocked Unit Test
-
-### DB Unit Test
-
-### Assembly Test
-
-
-### API Test
-
-
-## Configuration
-
-### Security
-
-### Swagger
 

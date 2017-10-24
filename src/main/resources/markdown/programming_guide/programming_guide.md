@@ -359,31 +359,49 @@ Please refer the (JPA manual)[http://www.objectdb.com/java/jpa] for detail info 
 ### Views And Service Forms
 
 ### Feign Clients
+Feign clients provide an http client to call web service. When using Feign clients, you define an interface of
+the web service and annotated with `@FeignClient` and specify its configuration like url, context path etc.
 
+After that you just define the method the same as the web service including the request mapping. Then you are ready to use the Feign Clients.
+
+```java
+@FeignClient(value = ADMIN_SERVICE, path = ADMIN_SERVICE_CONTEXT)
+public interface UserClient {
+
+    @RequestMapping(value = "/user/{userId}", method = RequestMethod.GET)
+    UserDetailView getUser(@PathVariable("userId") String userName);
+
+    @RequestMapping(value = "/user/queryUser", method = RequestMethod.GET)
+    List<UserDetailView> getUsers();
+
+    @RequestMapping(value = "/user/createUser", method = RequestMethod.POST)
+    Boolean createUser(@RequestBody UserServiceForm user);
+
+}
+```
 
 ## Logging
 
 ## Exception Handling
 
 ## Java Doc
+[Collections.java](http://www.docjar.net/html/api/java/util/Collections.java.html)
+
+[How to Write Doc Comments for the Javadoc Tool](http://www.oracle.com/technetwork/java/javase/documentation/index-137868.html)
 
 ## DB Deployment
 
 ## Testing
 
 ### Mocked Unit Test
-Most of the logic should be tested by unit test case because the cost of unit test is cheap. However, most of the
-programs depends on DB so that unit test cannot be done until something is mocked. So, jmockit is used
+Most of the logic should be tested by unit test case because the cost of unit test is cheap. However, most of the programs depends on DB so that unit test cannot be done until something is mocked. So, jmockit is used
 for mocking.
-
-To create an unit test case, a junit test class should be create. The package should be the same as the tested class
-and the class name is {the name of the tested class} + "MockedTests".
-
+To create an unit test case, a junit test class should be create. The package should be the same as the tested class and the class name is {the name of the tested class} + "MockedTests".
 
 ### DB Unit Test
+For those classes query directly to DB like `***Repository` should create an unit test case for each class. The package should be the same as the tested class and the class name is {the name of the tested class} + "DbTests".
 
 ### Assembly Test
-
 
 ### API Test
 

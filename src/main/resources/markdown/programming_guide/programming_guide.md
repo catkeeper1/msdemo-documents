@@ -352,9 +352,45 @@ the `equals()` and `hashcode()` method of the ID class must be implemented prope
 (relationship)[http://www.objectdb.com/api/java/jpa/annotations/relationship] for more detail. When, association
 annotation is used, make sure the `cascade` attribute is empty(no entity will be persist until developer make it
 explicitly) and `fetch` attribute is LAZY(no unexpected DB query will be done automatically.). That means, when
-`@OneToOne` and `@ManyToOne` is used, the `fetch` attribute must be set to LAZY explicitly.
+`@OneToOne` and `@ManyToOne` is used, the `fetch` attribute must be set to LAZY explicitly. 
+
+* Assume there are 2 entities, User and UserGroup. One UserGroup may contain many users. The User entity should include
+below source
+```java
+    @Column(name = "GROUP_CODE", length = 100)
+    public String getGroupCode() {
+        return groupCode;
+    }
+
+    public void setGroupCode(String groupCode) {
+        this.groupCode = groupCode;
+    }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "GROUP_CODE", insertable = false, updatable = false)
+    public UserGroup getGroup() {
+        return group;
+    }
+    
+    public void setGroup(UserGroup group) {
+        this.group = group;
+    }
+```
+That means, if developer call setGroup(), nothing in DB will be changed. Developer need to call setGroupCode() to 
+change UserGroup for an User. 
+
+need tos supply the many to many example here.
+
+The reasons are: 
+>1. When developers do problem diagnosis, usually, they need to check whether the fields in DB are saved as expected. 
+ Even though JPA can provide many OO feature, finally, developer still need to understand the RDBMS table. So, in this 
+project, it is expected that the JPA is only an  
+>2.
+ 
 
 Please refer the (JPA manual)[http://www.objectdb.com/java/jpa] for detail info about JPA development.
+
+
 
 ### Views And Service Forms
 

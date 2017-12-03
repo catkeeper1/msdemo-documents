@@ -234,6 +234,8 @@ In the example above, even though the interface is empty, it is an Repository th
 for User Entity because it extend `JpaRepository`. Please read the source of `JpaRepository` to find the CRUD methods
 it provide.
 
+Please refer [query methods](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.query-methods)
+for more detail about how to query data with repositories.
 
 ### DAOs
 Sometimes, developer have to access multple entity or table in one QL statement. Otherwise, it will cause performance
@@ -654,8 +656,158 @@ should not be enabled in production.
   
 
 ## Java Doc
-[Collections.java](http://www.docjar.net/html/api/java/util/Collections.java.html)
+The java doc will be used as technical spec. The main purpose of writting java doc are:
+* Illustrate the structure or usage of programs to make them can be maintained easily.
+* Make the source and the document of source are maintained in the same place and under the same VCS's control so that 
+it is easier to make them in sync.
 
+Please follow below guideline to write javadoc:
+* For some common features, they cannot work until a few classes work together. In such case, create package-info.java
+under that package and write java doc in it to explain the relatiopnship of those classes and how they work together to 
+make the feature work. 
+* Only public and protected methods need javadoc.
+* For all javadoc, they must be started with one sentence that summarize the usage or purpose of a 
+method/class/package.
+* If the javadoc need to explain a lot of things and you want to create some sections in it, please use 
+`<h1/> <h2/> <h3/>` to create some headers. For example:
+```text
+<h1>features</h1>
+```
+* If you want to create a new line, please use `<br>`(just like key in 'enter' in an text editor). For example:
+```text
+This is the basic exception for this system. All other customized exception type should
+extend this class. <br>
+```           
+* If you want to create a new paragraph, please use `<p>`. Please note that, the `<p>` should be placed at the 
+beginning of the new paragraph. For example:
+```text
+<p>This package include below key classes:
+```            
+* If you want to create some bullet points in the doc, please use `<ol>`,`<ul>` and `<li>`. For example:
+```text
+<ul>
+  <li> Dynamic search criteria. For example, the search criteria can be changed base on the user input in UI.
+  <li> Allow HTTP client to specify the range of records that should be returned.
+  <li> Allow HTTP client to specify the sorting criteria. Multiple sorting criteria can be specified.
+  <li> Return the no of total records for that query.
+</ul>
+```
+
+* If you feel it is very difficult to write a javadoc because the java class/method is too simple so that you feel have 
+nothing to say, please just mention the usage of the class/method or what is should do. The principle is that other 
+developer can code the implementation of the class/method after they read the javadoc. This approach will be used by 
+ controller often since they just provide HTTP endpoints and do not include complex logic. For example:
+
+```text
+<!-- this is a java doc for a class -->
+Provide HTTP endpoints for user maintenance functions.
+
+<!-- this is a java doc for a method -->
+Query user detail info by user ID. It should be used by screen that show
+the detail info of one user. Such as, detail user query screen or user detail maintain screen.
+It should call {@link UserService#queryUser(String)}.
+```
+ 
+* If a class/method has relationship with or depends on other class/method, plesae use `{@link}` or `@see` to link 
+them. For example:
+```text
+To enable those pagination features, please place annotation
+{@link org.ckr.msdemo.pagination.EnablePagination} in any java configuration class in an application.
+```
+
+* Please use `@param` and `@return` to explain the meaning of parameters and returned result. For example:
+```text
+@return the new status of an order. 'A' means approved. 'C' means closed.
+```
+
+* If some class/method usage is too complicated to explain, please use source example to explain. The source example
+must be placed within `<pre><code>... </code></pre>`. For example:
+```text
+<p>To enable pagination feature, please place this annotation in any java configuration class as below:
+  <pre>
+      <code>
+          &#064;EnablePagination
+          public class PaginationConfig {
+          ...
+          }
+      </code>
+ </pre>
+```
+Please note that, some char in the source need to be replaced with escape char. For example `@` must be replaced 
+by `&#064;`. Otherwise, the javadoc cannot be generated. Please refer "Escape Sequence Numbers" in appendix.
+
+* If you want to show an UML in javadoc, please use plantuml. For example:
+```text
+ * Below is a sequence diagram illustrate how all those key classes work together:
+ * <p><img src="paginationSequence.svg" alt="sequence diagram">
+ * <!--
+@startuml paginationSequence.svg
+autonumber
+
+participant  HTTPClient
+participant  PaginationInterceptor
+participant  RestPaginationResponseAdvice
+participant  PaginationContext
+participant  Controller
+participant  Service
+
+participant  JpaRestPaginationService
+"HTTPClient" -> "PaginationInterceptor": Send request
+"PaginationInterceptor" -> "PaginationContext": Parse and store range of records and sorting fields from \
+HTTP request.
+
+
+"PaginationInterceptor" -> "Controller": Pass HTTP request to controller.                                         \
+                                                            \t
+note right
+  Controller is the controller
+  object that provide HTTP
+  endpoint for this
+  pagination query.
+end note
+"Controller" -> "Service": Construct QL and parameters for the query.
+note right
+  Service is the service object that implement
+  the query logic. It should launch the DB
+  transaction.
+end note
+"Service" -> "JpaRestPaginationService" : Pass search criteria to JpaRestPaginationService
+"JpaRestPaginationService" -> "PaginationContext": Retrieve pagination request info.
+"JpaRestPaginationService" -> "JpaRestPaginationService": Retrieve query content from DB.
+"JpaRestPaginationService" -> "JpaRestPaginationService": Retrieve  and total number of \
+records for this query from DB.
+"JpaRestPaginationService" -> "PaginationContext": Save the total number of records.
+"Service" <- "JpaRestPaginationService" : Return result list
+"Controller" <- "Service" : Return result. Commit DB transaction.
+"Controller" -> "RestPaginationResponseAdvice" : Pass HTTP response to it
+"PaginationContext" <- "RestPaginationResponseAdvice": Save total number of records in HTTP response header.
+"RestPaginationResponseAdvice" -> "PaginationInterceptor": Pass HTTP response to it
+"PaginationInterceptor" -> "PaginationContext": Clear context data(pagination info) to release memory.
+"HTTPClient" <- "PaginationInterceptor": Return result list with pagination info.
+@enduml .
+-->
+ *
+```
+Please note that, 
+> * an <img/> must be there, otherwise the UML cannot be shown. 
+> * The <img/> must have an alt attribute.
+> * All plantuml statements must be placed within `<!-- -->` . `-->` cannot be used in the plantuml statements. All of them
+ must be replaced with `<--`.
+> * For other javadoc statements, there is a `*` before them. For plantuml statement, make sure there is no `*` before
+them. The reason is that, sometimes, the IDEA planuml editor is not available in local machine, we need to copy the plantuml 
+  statement to online editor and edit there. If will be very trouble to remove the `*`.
+
+* If you want to place an image to java doc. create a `doc-files` foler under current package. Copy the image you  want to show 
+to this folder. Then, place an `<img/>` in the java doc. For example:
+```text
+<img src="doc-files/abc.png" alt="demo diagram">
+```
+
+If you need more example, please refer 
+[Collections.java](http://www.docjar.net/html/api/java/util/Collections.java.html). Please note that this example is for an java basic class,
+it is too long and too complicated for this project.
+
+For more detail, please refer 
 [How to Write Doc Comments for the Javadoc Tool](http://www.oracle.com/technetwork/java/javase/documentation/index-137868.html)
 
 ## DB Deployment
@@ -746,5 +898,980 @@ pattern should be "test{the name method being tested}_{remark for scenario}".**
 
 * Good: `ADMIN_SERVICE` or `ADMIN_SERVICE_CONTEXT`
 * Bad: `admin_service`
+
+
+## Appendix
+### Escape Sequence Numbers
+|   Original Char     |Should be replaced by |
+|:-------------------:|:--------------------:|
+|                     | &#38;#32;                | 
+|!                    | &#38;#33;                |
+|"                    | &#38;#34;                |
+|#                    | &#38;#35;                |
+|$                    | &#38;#36;                |
+|%                    | &#38;#37;                |
+|&                    | &#38;#38;                |
+|'                    | &#38;#39;                |
+|(                    | &#38;#40;                |
+|)                    | &#38;#41;                |
+|*                    | &#38;#42;                |
+|+                    | &#38;#43;                |
+|,                    | &#38;#44;                |
+|-                    | &#38;#45;                |
+|.                    | &#38;#46;                |
+|/                    | &#38;#47;                |
+|0                    | &#38;#48;                |
+|1                    | &#38;#49;                |
+|2                    | &#38;#50;                |
+|3                    | &#38;#51;                |
+|4                    | &#38;#52;                |
+|5                    | &#38;#53;                |
+|6                    | &#38;#54;                |
+|7                    | &#38;#55;                |
+|8                    | &#38;#56;                |
+|9                    | &#38;#57;                |
+|:                    | &#38;#58;                |
+|;                    | &#38;#59;                |
+|<                    | &#38;#60;                |
+|=                    | &#38;#61;                |
+|>                    | &#38;#62;                |
+|?                    | &#38;#63;                |
+|@                    | &#38;#64;                |
+|A                    | &#38;#65;                |
+|B                    | &#38;#66;                |
+|C                    | &#38;#67;                |
+|D                    | &#38;#68;                |
+|E                    | &#38;#69;                |
+|F                    | &#38;#70;                |
+|G                    | &#38;#71;                |
+|H                    | &#38;#72;                |
+|I                    | &#38;#73;                |
+|J                    | &#38;#74;                |
+|K                    | &#38;#75;                |
+|L                    | &#38;#76;                |
+|M                    | &#38;#77;                |
+|N                    | &#38;#78;                |
+|O                    | &#38;#79;                |
+|P                    | &#38;#80;                |
+|Q                    | &#38;#81;                |
+|R                    | &#38;#82;                |
+|S                    | &#38;#83;                |
+|T                    | &#38;#84;                |
+|U                    | &#38;#85;                |
+|V                    | &#38;#86;                |
+|W                    | &#38;#87;                |
+|X                    | &#38;#88;                |
+|Y                    | &#38;#89;                |
+|Z                    | &#38;#90;                |
+|[                    | &#38;#91;                |
+|\                    | &#38;#92;                |
+|]                    | &#38;#93;                |
+|^                    | &#38;#94;                |
+|_                    | &#38;#95;                |
+|`                    | &#38;#96;                |
+|a                    | &#38;#97;                |
+|b                    | &#38;#98;                |
+|c                    | &#38;#99;                |
+|d                    | &#38;#100;               |
+|e                    | &#38;#101;               |
+|f                    | &#38;#102;               |
+|g                    | &#38;#103;               |
+|h                    | &#38;#104;               |
+|i                    | &#38;#105;               |
+|j                    | &#38;#106;               |
+|k                    | &#38;#107;               |
+|l                    | &#38;#108;               |
+|m                    | &#38;#109;               |
+|n                    | &#38;#110;               |
+|o                    | &#38;#111;               |
+|p                    | &#38;#112;               |
+|q                    | &#38;#113;               |
+|r                    | &#38;#114;               |
+|s                    | &#38;#115;               |
+|t                    | &#38;#116;               |
+|u                    | &#38;#117;               |
+|v                    | &#38;#118;               |
+|w                    | &#38;#119;               |
+|x                    | &#38;#120;               |
+|y                    | &#38;#121;               |
+|z                    | &#38;#122;               |
+|{                    | &#38;#123;               |
+||                    | &#38;#124;               |
+|}                    | &#38;#125;               |
+|~                    | &#38;#126;               |
+|                    | &#38;#127;               |
+|€                    | &#38;#128;               |
+|                    | &#38;#129;               |
+|‚                    | &#38;#130;               |
+|ƒ                    | &#38;#131;               |
+|„                    | &#38;#132;               |
+|…                    | &#38;#133;               |
+|†                    | &#38;#134;               |
+|‡                    | &#38;#135;               |
+|ˆ                    | &#38;#136;               |
+|‰                    | &#38;#137;               |
+|Š                    | &#38;#138;               |
+|‹                    | &#38;#139;               |
+|Œ                    | &#38;#140;               |
+|                    | &#38;#141;               |
+|Ž                    | &#38;#142;               |
+|                    | &#38;#143;               |
+|                    | &#38;#144;               |
+|‘                    | &#38;#145;               |
+|’                    | &#38;#146;               |
+|“                    | &#38;#147;               |
+|”                    | &#38;#148;               |
+|•                    | &#38;#149;               |
+|–                    | &#38;#150;               |
+|—                    | &#38;#151;               |
+|˜                    | &#38;#152;               |
+|™                    | &#38;#153;               |
+|š                    | &#38;#154;               |
+|›                    | &#38;#155;               |
+|œ                    | &#38;#156;               |
+|                    | &#38;#157;               |
+|ž                    | &#38;#158;               |
+|Ÿ                    | &#38;#159;               |
+|                     | &#38;#160;               |
+|¡                    | &#38;#161;               |
+|¢                    | &#38;#162;               |
+|£                    | &#38;#163;               |
+|¤                    | &#38;#164;               |
+|¥                    | &#38;#165;               |
+|¦                    | &#38;#166;               |
+|§                    | &#38;#167;               |
+|¨                    | &#38;#168;               |
+|©                    | &#38;#169;               |
+|ª                    | &#38;#170;               |
+|«                    | &#38;#171;               |
+|¬                    | &#38;#172;               |
+|                     | &#38;#173;               |
+|®                    | &#38;#174;               |
+|¯                    | &#38;#175;               |
+|°                    | &#38;#176;               |
+|±                    | &#38;#177;               |
+|²                    | &#38;#178;               |
+|³                    | &#38;#179;               |
+|´                    | &#38;#180;               |
+|µ                    | &#38;#181;               |
+|¶                    | &#38;#182;               |
+|·                    | &#38;#183;               |
+|¸                    | &#38;#184;               |
+|¹                    | &#38;#185;               |
+|º                    | &#38;#186;               |
+|»                    | &#38;#187;               |
+|¼                    | &#38;#188;               |
+|½                    | &#38;#189;               |
+|¾                    | &#38;#190;               |
+|¿                    | &#38;#191;               |
+|À                    | &#38;#192;               |
+|Á                    | &#38;#193;               |
+|Â                    | &#38;#194;               |
+|Ã                    | &#38;#195;               |
+|Ä                    | &#38;#196;               |
+|Å                    | &#38;#197;               |
+|Æ                    | &#38;#198;               |
+|Ç                    | &#38;#199;               |
+|È                    | &#38;#200;               |
+|É                    | &#38;#201;               |
+|Ê                    | &#38;#202;               |
+|Ë                    | &#38;#203;               |
+|Ì                    | &#38;#204;               |
+|Í                    | &#38;#205;               |
+|Î                    | &#38;#206;               |
+|Ï                    | &#38;#207;               |
+|Ð                    | &#38;#208;               |
+|Ñ                    | &#38;#209;               |
+|Ò                    | &#38;#210;               |
+|Ó                    | &#38;#211;               |
+|Ô                    | &#38;#212;               |
+|Õ                    | &#38;#213;               |
+|Ö                    | &#38;#214;               |
+|×                    | &#38;#215;               |
+|Ø                    | &#38;#216;               |
+|Ù                    | &#38;#217;               |
+|Ú                    | &#38;#218;               |
+|Û                    | &#38;#219;               |
+|Ü                    | &#38;#220;               |
+|Ý                    | &#38;#221;               |
+|Þ                    | &#38;#222;               |
+|ß                    | &#38;#223;               |
+|à                    | &#38;#224;               |
+|á                    | &#38;#225;               |
+|â                    | &#38;#226;               |
+|ã                    | &#38;#227;               |
+|ä                    | &#38;#228;               |
+|å                    | &#38;#229;               |
+|æ                    | &#38;#230;               |
+|ç                    | &#38;#231;               |
+|è                    | &#38;#232;               |
+|é                    | &#38;#233;               |
+|ê                    | &#38;#234;               |
+|ë                    | &#38;#235;               |
+|ì                    | &#38;#236;               |
+|í                    | &#38;#237;               |
+|î                    | &#38;#238;               |
+|ï                    | &#38;#239;               |
+|ð                    | &#38;#240;               |
+|ñ                    | &#38;#241;               |
+|ò                    | &#38;#242;               |
+|ó                    | &#38;#243;               |
+|ô                    | &#38;#244;               |
+|õ                    | &#38;#245;               |
+|ö                    | &#38;#246;               |
+|÷                    | &#38;#247;               |
+|ø                    | &#38;#248;               |
+|ù                    | &#38;#249;               |
+|ú                    | &#38;#250;               |
+|û                    | &#38;#251;               |
+|ü                    | &#38;#252;               |
+|ý                    | &#38;#253;               |
+|þ                    | &#38;#254;               |
+|ÿ                    | &#38;#255;               |
+|Ā                    | &#38;#256;               |
+|ā                    | &#38;#257;               |
+|Ă                    | &#38;#258;               |
+|ă                    | &#38;#259;               |
+|Ą                    | &#38;#260;               |
+|ą                    | &#38;#261;               |
+|Ć                    | &#38;#262;               |
+|ć                    | &#38;#263;               |
+|Ĉ                    | &#38;#264;               |
+|ĉ                    | &#38;#265;               |
+|Ċ                    | &#38;#266;               |
+|ċ                    | &#38;#267;               |
+|Č                    | &#38;#268;               |
+|č                    | &#38;#269;               |
+|Ď                    | &#38;#270;               |
+|ď                    | &#38;#271;               |
+|Đ                    | &#38;#272;               |
+|đ                    | &#38;#273;               |
+|Ē                    | &#38;#274;               |
+|ē                    | &#38;#275;               |
+|Ĕ                    | &#38;#276;               |
+|ĕ                    | &#38;#277;               |
+|Ė                    | &#38;#278;               |
+|ė                    | &#38;#279;               |
+|Ę                    | &#38;#280;               |
+|ę                    | &#38;#281;               |
+|Ě                    | &#38;#282;               |
+|ě                    | &#38;#283;               |
+|Ĝ                    | &#38;#284;               |
+|ĝ                    | &#38;#285;               |
+|Ğ                    | &#38;#286;               |
+|ğ                    | &#38;#287;               |
+|Ġ                    | &#38;#288;               |
+|ġ                    | &#38;#289;               |
+|Ģ                    | &#38;#290;               |
+|ģ                    | &#38;#291;               |
+|Ĥ                    | &#38;#292;               |
+|ĥ                    | &#38;#293;               |
+|Ħ                    | &#38;#294;               |
+|ħ                    | &#38;#295;               |
+|Ĩ                    | &#38;#296;               |
+|ĩ                    | &#38;#297;               |
+|Ī                    | &#38;#298;               |
+|ī                    | &#38;#299;               |
+|Ĭ                    | &#38;#300;               |
+|ĭ                    | &#38;#301;               |
+|Į                    | &#38;#302;               |
+|į                    | &#38;#303;               |
+|İ                    | &#38;#304;               |
+|ı                    | &#38;#305;               |
+|Ĳ                    | &#38;#306;               |
+|ĳ                    | &#38;#307;               |
+|Ĵ                    | &#38;#308;               |
+|ĵ                    | &#38;#309;               |
+|Ķ                    | &#38;#310;               |
+|ķ                    | &#38;#311;               |
+|ĸ                    | &#38;#312;               |
+|Ĺ                    | &#38;#313;               |
+|ĺ                    | &#38;#314;               |
+|Ļ                    | &#38;#315;               |
+|ļ                    | &#38;#316;               |
+|Ľ                    | &#38;#317;               |
+|ľ                    | &#38;#318;               |
+|Ŀ                    | &#38;#319;               |
+|ŀ                    | &#38;#320;               |
+|Ł                    | &#38;#321;               |
+|ł                    | &#38;#322;               |
+|Ń                    | &#38;#323;               |
+|ń                    | &#38;#324;               |
+|Ņ                    | &#38;#325;               |
+|ņ                    | &#38;#326;               |
+|Ň                    | &#38;#327;               |
+|ň                    | &#38;#328;               |
+|ŉ                    | &#38;#329;               |
+|Ŋ                    | &#38;#330;               |
+|ŋ                    | &#38;#331;               |
+|Ō                    | &#38;#332;               |
+|ō                    | &#38;#333;               |
+|Ŏ                    | &#38;#334;               |
+|ŏ                    | &#38;#335;               |
+|Ő                    | &#38;#336;               |
+|ő                    | &#38;#337;               |
+|Œ                    | &#38;#338;               |
+|œ                    | &#38;#339;               |
+|Ŕ                    | &#38;#340;               |
+|ŕ                    | &#38;#341;               |
+|Ŗ                    | &#38;#342;               |
+|ŗ                    | &#38;#343;               |
+|Ř                    | &#38;#344;               |
+|ř                    | &#38;#345;               |
+|Ś                    | &#38;#346;               |
+|ś                    | &#38;#347;               |
+|Ŝ                    | &#38;#348;               |
+|ŝ                    | &#38;#349;               |
+|Ş                    | &#38;#350;               |
+|ş                    | &#38;#351;               |
+|Š                    | &#38;#352;               |
+|š                    | &#38;#353;               |
+|Ţ                    | &#38;#354;               |
+|ţ                    | &#38;#355;               |
+|Ť                    | &#38;#356;               |
+|ť                    | &#38;#357;               |
+|Ŧ                    | &#38;#358;               |
+|ŧ                    | &#38;#359;               |
+|Ũ                    | &#38;#360;               |
+|ũ                    | &#38;#361;               |
+|Ū                    | &#38;#362;               |
+|ū                    | &#38;#363;               |
+|Ŭ                    | &#38;#364;               |
+|ŭ                    | &#38;#365;               |
+|Ů                    | &#38;#366;               |
+|ů                    | &#38;#367;               |
+|Ű                    | &#38;#368;               |
+|ű                    | &#38;#369;               |
+|Ų                    | &#38;#370;               |
+|ų                    | &#38;#371;               |
+|Ŵ                    | &#38;#372;               |
+|ŵ                    | &#38;#373;               |
+|Ŷ                    | &#38;#374;               |
+|ŷ                    | &#38;#375;               |
+|Ÿ                    | &#38;#376;               |
+|Ź                    | &#38;#377;               |
+|ź                    | &#38;#378;               |
+|Ż                    | &#38;#379;               |
+|ż                    | &#38;#380;               |
+|Ž                    | &#38;#381;               |
+|ž                    | &#38;#382;               |
+|ſ                    | &#38;#383;               |
+|ƀ                    | &#38;#384;               |
+|Ɓ                    | &#38;#385;               |
+|Ƃ                    | &#38;#386;               |
+|ƃ                    | &#38;#387;               |
+|Ƅ                    | &#38;#388;               |
+|ƅ                    | &#38;#389;               |
+|Ɔ                    | &#38;#390;               |
+|Ƈ                    | &#38;#391;               |
+|ƈ                    | &#38;#392;               |
+|Ɖ                    | &#38;#393;               |
+|Ɗ                    | &#38;#394;               |
+|Ƌ                    | &#38;#395;               |
+|ƌ                    | &#38;#396;               |
+|ƍ                    | &#38;#397;               |
+|Ǝ                    | &#38;#398;               |
+|Ə                    | &#38;#399;               |
+|Ɛ                    | &#38;#400;               |
+|Ƒ                    | &#38;#401;               |
+|ƒ                    | &#38;#402;               |
+|Ɠ                    | &#38;#403;               |
+|Ɣ                    | &#38;#404;               |
+|ƕ                    | &#38;#405;               |
+|Ɩ                    | &#38;#406;               |
+|Ɨ                    | &#38;#407;               |
+|Ƙ                    | &#38;#408;               |
+|ƙ                    | &#38;#409;               |
+|ƚ                    | &#38;#410;               |
+|ƛ                    | &#38;#411;               |
+|Ɯ                    | &#38;#412;               |
+|Ɲ                    | &#38;#413;               |
+|ƞ                    | &#38;#414;               |
+|Ɵ                    | &#38;#415;               |
+|Ơ                    | &#38;#416;               |
+|ơ                    | &#38;#417;               |
+|Ƣ                    | &#38;#418;               |
+|ƣ                    | &#38;#419;               |
+|Ƥ                    | &#38;#420;               |
+|ƥ                    | &#38;#421;               |
+|Ʀ                    | &#38;#422;               |
+|Ƨ                    | &#38;#423;               |
+|ƨ                    | &#38;#424;               |
+|Ʃ                    | &#38;#425;               |
+|ƪ                    | &#38;#426;               |
+|ƫ                    | &#38;#427;               |
+|Ƭ                    | &#38;#428;               |
+|ƭ                    | &#38;#429;               |
+|Ʈ                    | &#38;#430;               |
+|Ư                    | &#38;#431;               |
+|ư                    | &#38;#432;               |
+|Ʊ                    | &#38;#433;               |
+|Ʋ                    | &#38;#434;               |
+|Ƴ                    | &#38;#435;               |
+|ƴ                    | &#38;#436;               |
+|Ƶ                    | &#38;#437;               |
+|ƶ                    | &#38;#438;               |
+|Ʒ                    | &#38;#439;               |
+|Ƹ                    | &#38;#440;               |
+|ƹ                    | &#38;#441;               |
+|ƺ                    | &#38;#442;               |
+|ƻ                    | &#38;#443;               |
+|Ƽ                    | &#38;#444;               |
+|ƽ                    | &#38;#445;               |
+|ƾ                    | &#38;#446;               |
+|ƿ                    | &#38;#447;               |
+|ǀ                    | &#38;#448;               |
+|ǁ                    | &#38;#449;               |
+|ǂ                    | &#38;#450;               |
+|ǃ                    | &#38;#451;               |
+|Ǆ                    | &#38;#452;               |
+|ǅ                    | &#38;#453;               |
+|ǆ                    | &#38;#454;               |
+|Ǉ                    | &#38;#455;               |
+|ǈ                    | &#38;#456;               |
+|ǉ                    | &#38;#457;               |
+|Ǌ                    | &#38;#458;               |
+|ǋ                    | &#38;#459;               |
+|ǌ                    | &#38;#460;               |
+|Ǎ                    | &#38;#461;               |
+|ǎ                    | &#38;#462;               |
+|Ǐ                    | &#38;#463;               |
+|ǐ                    | &#38;#464;               |
+|Ǒ                    | &#38;#465;               |
+|ǒ                    | &#38;#466;               |
+|Ǔ                    | &#38;#467;               |
+|ǔ                    | &#38;#468;               |
+|Ǖ                    | &#38;#469;               |
+|ǖ                    | &#38;#470;               |
+|Ǘ                    | &#38;#471;               |
+|ǘ                    | &#38;#472;               |
+|Ǚ                    | &#38;#473;               |
+|ǚ                    | &#38;#474;               |
+|Ǜ                    | &#38;#475;               |
+|ǜ                    | &#38;#476;               |
+|ǝ                    | &#38;#477;               |
+|Ǟ                    | &#38;#478;               |
+|ǟ                    | &#38;#479;               |
+|Ǡ                    | &#38;#480;               |
+|ǡ                    | &#38;#481;               |
+|Ǣ                    | &#38;#482;               |
+|ǣ                    | &#38;#483;               |
+|Ǥ                    | &#38;#484;               |
+|ǥ                    | &#38;#485;               |
+|Ǧ                    | &#38;#486;               |
+|ǧ                    | &#38;#487;               |
+|Ǩ                    | &#38;#488;               |
+|ǩ                    | &#38;#489;               |
+|Ǫ                    | &#38;#490;               |
+|ǫ                    | &#38;#491;               |
+|Ǭ                    | &#38;#492;               |
+|ǭ                    | &#38;#493;               |
+|Ǯ                    | &#38;#494;               |
+|ǯ                    | &#38;#495;               |
+|ǰ                    | &#38;#496;               |
+|Ǳ                    | &#38;#497;               |
+|ǲ                    | &#38;#498;               |
+|ǳ                    | &#38;#499;               |
+|Ǵ                    | &#38;#500;               |
+|ǵ                    | &#38;#501;               |
+|Ƕ                    | &#38;#502;               |
+|Ƿ                    | &#38;#503;               |
+|Ǹ                    | &#38;#504;               |
+|ǹ                    | &#38;#505;               |
+|Ǻ                    | &#38;#506;               |
+|ǻ                    | &#38;#507;               |
+|Ǽ                    | &#38;#508;               |
+|ǽ                    | &#38;#509;               |
+|Ǿ                    | &#38;#510;               |
+|ǿ                    | &#38;#511;               |
+|Ȁ                    | &#38;#512;               |
+|ȁ                    | &#38;#513;               |
+|Ȃ                    | &#38;#514;               |
+|ȃ                    | &#38;#515;               |
+|Ȅ                    | &#38;#516;               |
+|ȅ                    | &#38;#517;               |
+|Ȇ                    | &#38;#518;               |
+|ȇ                    | &#38;#519;               |
+|Ȉ                    | &#38;#520;               |
+|ȉ                    | &#38;#521;               |
+|Ȋ                    | &#38;#522;               |
+|ȋ                    | &#38;#523;               |
+|Ȍ                    | &#38;#524;               |
+|ȍ                    | &#38;#525;               |
+|Ȏ                    | &#38;#526;               |
+|ȏ                    | &#38;#527;               |
+|Ȑ                    | &#38;#528;               |
+|ȑ                    | &#38;#529;               |
+|Ȓ                    | &#38;#530;               |
+|ȓ                    | &#38;#531;               |
+|Ȕ                    | &#38;#532;               |
+|ȕ                    | &#38;#533;               |
+|Ȗ                    | &#38;#534;               |
+|ȗ                    | &#38;#535;               |
+|Ș                    | &#38;#536;               |
+|ș                    | &#38;#537;               |
+|Ț                    | &#38;#538;               |
+|ț                    | &#38;#539;               |
+|Ȝ                    | &#38;#540;               |
+|ȝ                    | &#38;#541;               |
+|Ȟ                    | &#38;#542;               |
+|ȟ                    | &#38;#543;               |
+|Ƞ                    | &#38;#544;               |
+|ȡ                    | &#38;#545;               |
+|Ȣ                    | &#38;#546;               |
+|ȣ                    | &#38;#547;               |
+|Ȥ                    | &#38;#548;               |
+|ȥ                    | &#38;#549;               |
+|Ȧ                    | &#38;#550;               |
+|ȧ                    | &#38;#551;               |
+|Ȩ                    | &#38;#552;               |
+|ȩ                    | &#38;#553;               |
+|Ȫ                    | &#38;#554;               |
+|ȫ                    | &#38;#555;               |
+|Ȭ                    | &#38;#556;               |
+|ȭ                    | &#38;#557;               |
+|Ȯ                    | &#38;#558;               |
+|ȯ                    | &#38;#559;               |
+|Ȱ                    | &#38;#560;               |
+|ȱ                    | &#38;#561;               |
+|Ȳ                    | &#38;#562;               |
+|ȳ                    | &#38;#563;               |
+|ȴ                    | &#38;#564;               |
+|ȵ                    | &#38;#565;               |
+|ȶ                    | &#38;#566;               |
+|ȷ                    | &#38;#567;               |
+|ȸ                    | &#38;#568;               |
+|ȹ                    | &#38;#569;               |
+|Ⱥ                    | &#38;#570;               |
+|Ȼ                    | &#38;#571;               |
+|ȼ                    | &#38;#572;               |
+|Ƚ                    | &#38;#573;               |
+|Ⱦ                    | &#38;#574;               |
+|ȿ                    | &#38;#575;               |
+|ɀ                    | &#38;#576;               |
+|Ɂ                    | &#38;#577;               |
+|ɂ                    | &#38;#578;               |
+|Ƀ                    | &#38;#579;               |
+|Ʉ                    | &#38;#580;               |
+|Ʌ                    | &#38;#581;               |
+|Ɇ                    | &#38;#582;               |
+|ɇ                    | &#38;#583;               |
+|Ɉ                    | &#38;#584;               |
+|ɉ                    | &#38;#585;               |
+|Ɋ                    | &#38;#586;               |
+|ɋ                    | &#38;#587;               |
+|Ɍ                    | &#38;#588;               |
+|ɍ                    | &#38;#589;               |
+|Ɏ                    | &#38;#590;               |
+|ɏ                    | &#38;#591;               |
+|ɐ                    | &#38;#592;               |
+|ɑ                    | &#38;#593;               |
+|ɒ                    | &#38;#594;               |
+|ɓ                    | &#38;#595;               |
+|ɔ                    | &#38;#596;               |
+|ɕ                    | &#38;#597;               |
+|ɖ                    | &#38;#598;               |
+|ɗ                    | &#38;#599;               |
+|ɘ                    | &#38;#600;               |
+|ə                    | &#38;#601;               |
+|ɚ                    | &#38;#602;               |
+|ɛ                    | &#38;#603;               |
+|ɜ                    | &#38;#604;               |
+|ɝ                    | &#38;#605;               |
+|ɞ                    | &#38;#606;               |
+|ɟ                    | &#38;#607;               |
+|ɠ                    | &#38;#608;               |
+|ɡ                    | &#38;#609;               |
+|ɢ                    | &#38;#610;               |
+|ɣ                    | &#38;#611;               |
+|ɤ                    | &#38;#612;               |
+|ɥ                    | &#38;#613;               |
+|ɦ                    | &#38;#614;               |
+|ɧ                    | &#38;#615;               |
+|ɨ                    | &#38;#616;               |
+|ɩ                    | &#38;#617;               |
+|ɪ                    | &#38;#618;               |
+|ɫ                    | &#38;#619;               |
+|ɬ                    | &#38;#620;               |
+|ɭ                    | &#38;#621;               |
+|ɮ                    | &#38;#622;               |
+|ɯ                    | &#38;#623;               |
+|ɰ                    | &#38;#624;               |
+|ɱ                    | &#38;#625;               |
+|ɲ                    | &#38;#626;               |
+|ɳ                    | &#38;#627;               |
+|ɴ                    | &#38;#628;               |
+|ɵ                    | &#38;#629;               |
+|ɶ                    | &#38;#630;               |
+|ɷ                    | &#38;#631;               |
+|ɸ                    | &#38;#632;               |
+|ɹ                    | &#38;#633;               |
+|ɺ                    | &#38;#634;               |
+|ɻ                    | &#38;#635;               |
+|ɼ                    | &#38;#636;               |
+|ɽ                    | &#38;#637;               |
+|ɾ                    | &#38;#638;               |
+|ɿ                    | &#38;#639;               |
+|ʀ                    | &#38;#640;               |
+|ʁ                    | &#38;#641;               |
+|ʂ                    | &#38;#642;               |
+|ʃ                    | &#38;#643;               |
+|ʄ                    | &#38;#644;               |
+|ʅ                    | &#38;#645;               |
+|ʆ                    | &#38;#646;               |
+|ʇ                    | &#38;#647;               |
+|ʈ                    | &#38;#648;               |
+|ʉ                    | &#38;#649;               |
+|ʊ                    | &#38;#650;               |
+|ʋ                    | &#38;#651;               |
+|ʌ                    | &#38;#652;               |
+|ʍ                    | &#38;#653;               |
+|ʎ                    | &#38;#654;               |
+|ʏ                    | &#38;#655;               |
+|ʐ                    | &#38;#656;               |
+|ʑ                    | &#38;#657;               |
+|ʒ                    | &#38;#658;               |
+|ʓ                    | &#38;#659;               |
+|ʔ                    | &#38;#660;               |
+|ʕ                    | &#38;#661;               |
+|ʖ                    | &#38;#662;               |
+|ʗ                    | &#38;#663;               |
+|ʘ                    | &#38;#664;               |
+|ʙ                    | &#38;#665;               |
+|ʚ                    | &#38;#666;               |
+|ʛ                    | &#38;#667;               |
+|ʜ                    | &#38;#668;               |
+|ʝ                    | &#38;#669;               |
+|ʞ                    | &#38;#670;               |
+|ʟ                    | &#38;#671;               |
+|ʠ                    | &#38;#672;               |
+|ʡ                    | &#38;#673;               |
+|ʢ                    | &#38;#674;               |
+|ʣ                    | &#38;#675;               |
+|ʤ                    | &#38;#676;               |
+|ʥ                    | &#38;#677;               |
+|ʦ                    | &#38;#678;               |
+|ʧ                    | &#38;#679;               |
+|ʨ                    | &#38;#680;               |
+|ʩ                    | &#38;#681;               |
+|ʪ                    | &#38;#682;               |
+|ʫ                    | &#38;#683;               |
+|ʬ                    | &#38;#684;               |
+|ʭ                    | &#38;#685;               |
+|ʮ                    | &#38;#686;               |
+|ʯ                    | &#38;#687;               |
+|ʰ                    | &#38;#688;               |
+|ʱ                    | &#38;#689;               |
+|ʲ                    | &#38;#690;               |
+|ʳ                    | &#38;#691;               |
+|ʴ                    | &#38;#692;               |
+|ʵ                    | &#38;#693;               |
+|ʶ                    | &#38;#694;               |
+|ʷ                    | &#38;#695;               |
+|ʸ                    | &#38;#696;               |
+|ʹ                    | &#38;#697;               |
+|ʺ                    | &#38;#698;               |
+|ʻ                    | &#38;#699;               |
+|ʼ                    | &#38;#700;               |
+|ʽ                    | &#38;#701;               |
+|ʾ                    | &#38;#702;               |
+|ʿ                    | &#38;#703;               |
+|ˀ                    | &#38;#704;               |
+|ˁ                    | &#38;#705;               |
+|˂                    | &#38;#706;               |
+|˃                    | &#38;#707;               |
+|˄                    | &#38;#708;               |
+|˅                    | &#38;#709;               |
+|ˆ                    | &#38;#710;               |
+|ˇ                    | &#38;#711;               |
+|ˈ                    | &#38;#712;               |
+|ˉ                    | &#38;#713;               |
+|ˊ                    | &#38;#714;               |
+|ˋ                    | &#38;#715;               |
+|ˌ                    | &#38;#716;               |
+|ˍ                    | &#38;#717;               |
+|ˎ                    | &#38;#718;               |
+|ˏ                    | &#38;#719;               |
+|ː                    | &#38;#720;               |
+|ˑ                    | &#38;#721;               |
+|˒                    | &#38;#722;               |
+|˓                    | &#38;#723;               |
+|˔                    | &#38;#724;               |
+|˕                    | &#38;#725;               |
+|˖                    | &#38;#726;               |
+|˗                    | &#38;#727;               |
+|˘                    | &#38;#728;               |
+|˙                    | &#38;#729;               |
+|˚                    | &#38;#730;               |
+|˛                    | &#38;#731;               |
+|˜                    | &#38;#732;               |
+|˝                    | &#38;#733;               |
+|˞                    | &#38;#734;               |
+|˟                    | &#38;#735;               |
+|ˠ                    | &#38;#736;               |
+|ˡ                    | &#38;#737;               |
+|ˢ                    | &#38;#738;               |
+|ˣ                    | &#38;#739;               |
+|ˤ                    | &#38;#740;               |
+|˥                    | &#38;#741;               |
+|˦                    | &#38;#742;               |
+|˧                    | &#38;#743;               |
+|˨                    | &#38;#744;               |
+|˩                    | &#38;#745;               |
+|˪                    | &#38;#746;               |
+|˫                    | &#38;#747;               |
+|ˬ                    | &#38;#748;               |
+|˭                    | &#38;#749;               |
+|ˮ                    | &#38;#750;               |
+|˯                    | &#38;#751;               |
+|˰                    | &#38;#752;               |
+|˱                    | &#38;#753;               |
+|˲                    | &#38;#754;               |
+|˳                    | &#38;#755;               |
+|˴                    | &#38;#756;               |
+|˵                    | &#38;#757;               |
+|˶                    | &#38;#758;               |
+|˷                    | &#38;#759;               |
+|˸                    | &#38;#760;               |
+|˹                    | &#38;#761;               |
+|˺                    | &#38;#762;               |
+|˻                    | &#38;#763;               |
+|˼                    | &#38;#764;               |
+|˽                    | &#38;#765;               |
+|˾                    | &#38;#766;               |
+|˿                    | &#38;#767;               |
+|̀                    | &#38;#768;               |
+|́                    | &#38;#769;               |
+|̂                    | &#38;#770;               |
+|̃                    | &#38;#771;               |
+|̄                    | &#38;#772;               |
+|̅                    | &#38;#773;               |
+|̆                    | &#38;#774;               |
+|̇                    | &#38;#775;               |
+|̈                    | &#38;#776;               |
+|̉                    | &#38;#777;               |
+|̊                    | &#38;#778;               |
+|̋                    | &#38;#779;               |
+|̌                    | &#38;#780;               |
+|̍                    | &#38;#781;               |
+|̎                    | &#38;#782;               |
+|̏                    | &#38;#783;               |
+|̐                    | &#38;#784;               |
+|̑                    | &#38;#785;               |
+|̒                    | &#38;#786;               |
+|̓                    | &#38;#787;               |
+|̔                    | &#38;#788;               |
+|̕                    | &#38;#789;               |
+|̖                    | &#38;#790;               |
+|̗                    | &#38;#791;               |
+|̘                    | &#38;#792;               |
+|̙                    | &#38;#793;               |
+|̚                    | &#38;#794;               |
+|̛                    | &#38;#795;               |
+|̜                    | &#38;#796;               |
+|̝                    | &#38;#797;               |
+|̞                    | &#38;#798;               |
+|̟                    | &#38;#799;               |
+|̠                    | &#38;#800;               |
+|̡                    | &#38;#801;               |
+|̢                    | &#38;#802;               |
+|̣                    | &#38;#803;               |
+|̤                    | &#38;#804;               |
+|̥                    | &#38;#805;               |
+|̦                    | &#38;#806;               |
+|̧                    | &#38;#807;               |
+|̨                    | &#38;#808;               |
+|̩                    | &#38;#809;               |
+|̪                    | &#38;#810;               |
+|̫                    | &#38;#811;               |
+|̬                    | &#38;#812;               |
+|̭                    | &#38;#813;               |
+|̮                    | &#38;#814;               |
+|̯                    | &#38;#815;               |
+|̰                    | &#38;#816;               |
+|̱                    | &#38;#817;               |
+|̲                    | &#38;#818;               |
+|̳                    | &#38;#819;               |
+|̴                    | &#38;#820;               |
+|̵                    | &#38;#821;               |
+|̶                    | &#38;#822;               |
+|̷                    | &#38;#823;               |
+|̸                    | &#38;#824;               |
+|̹                    | &#38;#825;               |
+|̺                    | &#38;#826;               |
+|̻                    | &#38;#827;               |
+|̼                    | &#38;#828;               |
+|̽                    | &#38;#829;               |
+|̾                    | &#38;#830;               |
+|̿                    | &#38;#831;               |
+|̀                    | &#38;#832;               |
+|́                    | &#38;#833;               |
+|͂                    | &#38;#834;               |
+|̓                    | &#38;#835;               |
+|̈́                    | &#38;#836;               |
+|ͅ                    | &#38;#837;               |
+|͆                    | &#38;#838;               |
+|͇                    | &#38;#839;               |
+|͈                    | &#38;#840;               |
+|͉                    | &#38;#841;               |
+|͊                    | &#38;#842;               |
+|͋                    | &#38;#843;               |
+|͌                    | &#38;#844;               |
+|͍                    | &#38;#845;               |
+|͎                    | &#38;#846;               |
+|͏                    | &#38;#847;               |
+|͐                    | &#38;#848;               |
+|͑                    | &#38;#849;               |
+|͒                    | &#38;#850;               |
+|͓                    | &#38;#851;               |
+|͔                    | &#38;#852;               |
+|͕                    | &#38;#853;               |
+|͖                    | &#38;#854;               |
+|͗                    | &#38;#855;               |
+|͘                    | &#38;#856;               |
+|͙                    | &#38;#857;               |
+|͚                    | &#38;#858;               |
+|͛                    | &#38;#859;               |
+|͜                    | &#38;#860;               |
+|͝                    | &#38;#861;               |
+|͞                    | &#38;#862;               |
+|͟                    | &#38;#863;               |
+|͠                    | &#38;#864;               |
+|͡                    | &#38;#865;               |
+|͢                    | &#38;#866;               |
+|ͣ                    | &#38;#867;               |
+|ͤ                    | &#38;#868;               |
+|ͥ                    | &#38;#869;               |
+|ͦ                    | &#38;#870;               |
+|ͧ                    | &#38;#871;               |
+|ͨ                    | &#38;#872;               |
+|ͩ                    | &#38;#873;               |
+|ͪ                    | &#38;#874;               |
+|ͫ                    | &#38;#875;               |
+|ͬ                    | &#38;#876;               |
+|ͭ                    | &#38;#877;               |
+|ͮ                    | &#38;#878;               |
+|ͯ                    | &#38;#879;               |
+|Ͱ                    | &#38;#880;               |
+|ͱ                    | &#38;#881;               |
+|Ͳ                    | &#38;#882;               |
+|ͳ                    | &#38;#883;               |
+|ʹ                    | &#38;#884;               |
+|͵                    | &#38;#885;               |
+|Ͷ                    | &#38;#886;               |
+|ͷ                    | &#38;#887;               |
+|͸                    | &#38;#888;               |
+|͹                    | &#38;#889;               |
+|ͺ                    | &#38;#890;               |
+|ͻ                    | &#38;#891;               |
+|ͼ                    | &#38;#892;               |
+|ͽ                    | &#38;#893;               |
+|;                    | &#38;#894;               |
+|Ϳ                    | &#38;#895;               |
+|΀                    | &#38;#896;               |
+|΁                    | &#38;#897;               |
+|΂                    | &#38;#898;               |
+|΃                    | &#38;#899;               |
+|΄                    | &#38;#900;               |
+|΅                    | &#38;#901;               |
+|Ά                    | &#38;#902;               |
+|·                    | &#38;#903;               |
+|Έ                    | &#38;#904;               |
+|Ή                    | &#38;#905;               |
+|Ί                    | &#38;#906;               |
+|΋                    | &#38;#907;               |
+|Ό                    | &#38;#908;               |
+|΍                    | &#38;#909;               |
+|Ύ                    | &#38;#910;               |
+|Ώ                    | &#38;#911;               |
+|ΐ                    | &#38;#912;               |
+|Α                    | &#38;#913;               |
+|Β                    | &#38;#914;               |
+|Γ                    | &#38;#915;               |
+|Δ                    | &#38;#916;               |
+|Ε                    | &#38;#917;               |
+|Ζ                    | &#38;#918;               |
+|Η                    | &#38;#919;               |
+|Θ                    | &#38;#920;               |
+|Ι                    | &#38;#921;               |
+|Κ                    | &#38;#922;               |
+|Λ                    | &#38;#923;               |
+|Μ                    | &#38;#924;               |
+|Ν                    | &#38;#925;               |
+|Ξ                    | &#38;#926;               |
+|Ο                    | &#38;#927;               |
+|Π                    | &#38;#928;               |
+|Ρ                    | &#38;#929;               |
+|΢                    | &#38;#930;               |
+|Σ                    | &#38;#931;               |
+|Τ                    | &#38;#932;               |
+|Υ                    | &#38;#933;               |
+|Φ                    | &#38;#934;               |
+|Χ                    | &#38;#935;               |
+|Ψ                    | &#38;#936;               |
+|Ω                    | &#38;#937;               |
+|Ϊ                    | &#38;#938;               |
+|Ϋ                    | &#38;#939;               |
+|ά                    | &#38;#940;               |
+|έ                    | &#38;#941;               |
+|ή                    | &#38;#942;               |
+|ί                    | &#38;#943;               |
+|ΰ                    | &#38;#944;               |
+|α                    | &#38;#945;               |
+|β                    | &#38;#946;               |
+|γ                    | &#38;#947;               |
+|δ                    | &#38;#948;               |
+|ε                    | &#38;#949;               |
+|ζ                    | &#38;#950;               |
+|η                    | &#38;#951;               |
+|θ                    | &#38;#952;               |
+|ι                    | &#38;#953;               |
+|κ                    | &#38;#954;               |
+|λ                    | &#38;#955;               |
+|μ                    | &#38;#956;               |
+|ν                    | &#38;#957;               |
+|ξ                    | &#38;#958;               |
+|ο                    | &#38;#959;               |
+|π                    | &#38;#960;               |
+|ρ                    | &#38;#961;               |
+|ς                    | &#38;#962;               |
+|σ                    | &#38;#963;               |
+|τ                    | &#38;#964;               |
+|υ                    | &#38;#965;               |
+|φ                    | &#38;#966;               |
+|χ                    | &#38;#967;               |
+|ψ                    | &#38;#968;               |
+|ω                    | &#38;#969;               |
+|ϊ                    | &#38;#970;               |
+|ϋ                    | &#38;#971;               |
+|ό                    | &#38;#972;               |
+|ύ                    | &#38;#973;               |
+|ώ                    | &#38;#974;               |
+|Ϗ                    | &#38;#975;               |
+|ϐ                    | &#38;#976;               |
+|ϑ                    | &#38;#977;               |
+|ϒ                    | &#38;#978;               |
+|ϓ                    | &#38;#979;               |
+|ϔ                    | &#38;#980;               |
+|ϕ                    | &#38;#981;               |
+|ϖ                    | &#38;#982;               |
+|ϗ                    | &#38;#983;               |
+|Ϙ                    | &#38;#984;               |
+|ϙ                    | &#38;#985;               |
+|Ϛ                    | &#38;#986;               |
+|ϛ                    | &#38;#987;               |
+|Ϝ                    | &#38;#988;               |
+|ϝ                    | &#38;#989;               |
+|Ϟ                    | &#38;#990;               |
+|ϟ                    | &#38;#991;               |
+|Ϡ                    | &#38;#992;               |
+|ϡ                    | &#38;#993;               |
+|Ϣ                    | &#38;#994;               |
+|ϣ                    | &#38;#995;               |
+|Ϥ                    | &#38;#996;               |
+|ϥ                    | &#38;#997;               |
+|Ϧ                    | &#38;#998;               |
+|ϧ                    | &#38;#999;               |
+
 
 

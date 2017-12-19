@@ -821,6 +821,116 @@ Most of the logic should be tested by unit test case because the cost of unit te
 for mocking.
 To create an unit test case, a junit test class should be create. The package should be the same as the tested class and the class name is {the name of the tested class} + "MockedTests".
 
+#### Basic Annotation of Jmockit
+- `@Tested`
+    The `@Tested` annotation provides support for the automatic creation of an object under test, with its dependencies automatically filled with mocked and/or real instances.
+- `@Injectable`
+    Only one particular instance is mocked.
+- `@Mocked`
+    All current and future instances are mocked.
+
+#### Basic Usage of Jmockit
+```java
+
+@Tested
+ClassUnderTest sut;
+
+@Test
+public void aTestMethod(@Mocked MyCollaborator anyCollaborator, @Injectable MyCollaborator mock, <any number of mock parameters>) {
+   // Record phase: expectations on mocks are recorded; empty if nothing to record.
+   new Expectations() {{
+      anyCollaborator.getData(); result = "my test data";
+      anyCollaborator.doSomething(anyInt, "some expected value", anyString); times = 1;
+   }};
+   // Replay phase: invocations on mocks are "replayed"; code under test is exercised.
+    sut.testMethod();
+   // Verify phase: expectations on mocks are verified; empty if nothing to verify.
+   new Verifications() {{
+      // Verify the "MyCollaborator#doSomething()" method was executed at least once:
+      mock.doSomething();
+
+      // Even constructor invocations can be verified:
+      new MyCollaborator(); times = 0; // verifies there were no matching invocations
+
+      // Another verification, which allows up to three matching invocations:
+      mock.someOtherMethod(anyBoolean, any, withInstanceOf(Xyz.class)); maxTimes = 3;
+   }};
+
+}
+```
+
+
+#### Partial mocking of Jmockit
+```java
+public class PartialMockingTest
+{
+   static class Collaborator
+   {
+      final int value;
+
+      Collaborator() { value = -1; }
+      Collaborator(int value) { this.value = value; }
+
+      int getValue() { return value; }
+      final boolean simpleOperation(int a, String b, Date c) { return true; }
+      static void doSomething(boolean b, String s) { throw new IllegalStateException(); }
+   }
+
+   @Test
+   public void partiallyMockingAClassAndItsInstances() {
+      Collaborator anyInstance = new Collaborator();
+
+      new Expectations(Collaborator.class) {{
+         anyInstance.getValue(); result = 123;
+      }};
+
+      // Not mocked, as no constructor expectations were recorded:
+      Collaborator c1 = new Collaborator();
+      Collaborator c2 = new Collaborator(150);
+
+      // Mocked, as a matching method expectation was recorded:
+      assertEquals(123, c1.getValue());
+      assertEquals(123, c2.getValue());
+
+      // Not mocked:
+      assertTrue(c1.simpleOperation(1, "b", null));
+      assertEquals(45, new Collaborator(45).value);
+   }
+
+   @Test
+   public void partiallyMockingASingleInstance() {
+      Collaborator collaborator = new Collaborator(2);
+
+      new Expectations(collaborator) {{
+         collaborator.getValue(); result = 123;
+         collaborator.simpleOperation(1, "", null); result = false;
+
+         // Static methods can be dynamically mocked too.
+         Collaborator.doSomething(anyBoolean, "test");
+      }};
+
+      // Mocked:
+      assertEquals(123, collaborator.getValue());
+      assertFalse(collaborator.simpleOperation(1, "", null));
+      Collaborator.doSomething(true, "test");
+
+      // Not mocked:
+      assertEquals(2, collaborator.value);
+      assertEquals(45, new Collaborator(45).getValue());
+      assertEquals(-1, new Collaborator().getValue());
+   }
+}
+```
+
+#### Test Private method
+During development, there is some complicated logic which you divide the logic into several small private methods and call these methods in a method. How do we test such method in our project? Since Jmockit could not support mocking for private methods, we could do it this way,
+1. we give package access to these methods instead of `private` so that these method could be mocked.
+2. then we test these package accessible methodes seperatly.
+3. test the overall method that call these methodes.
+
+
+
+
 ### DB Unit Test
 For those classes query directly to DB like `***Repository` or `***Dao`, we should create an unit test case for each class. The package should be the same as the tested class and the class name is {the name of the tested class} + "DbTests".
 In a DB unit test, we annotate the test class with `@DbUnitTest`. When running a test case, a temperate in-memory database will start up automatically and sync the data using Liquibase.
@@ -836,6 +946,64 @@ With this annotation, you also run your test in an embedded in-memory database a
 ### API Test
 API test is constructed to simulate the use of the API by end-user applications. We use Feign client and Robot framework for API test.
 Feign client provides a easy to use http client and Robot framework provides key words to perform test.
+
+#### Robot framework
+
+Robot Framework is a generic test automation framework using build-in or user defined keywords to write test case.
+For user defined keywords, Refer to below example,
+
+1. We create a class with name `UserKeyword` with constructor to initialise `userClient`.
+2. Then create two keywords `Query User` and `Create User` using normal java methods `queryUser` and`createUser`.
+3. In the test case we import our `UserKeyword` and define the test case with keywords `Query User` and `Create User`.
+4. After run this test case, test result will be shown in the generated log/report.
+
+```java
+// UserKeyword.java
+public class UserKeyword {
+    private static final Logger LOG = LoggerFactory.getLogger(UserKeyword.class);
+
+    UserClient userClient;
+
+    public UserKeyword() {
+        this.userClient = (UserClient) BeanContainer.getBean(UserClient.class);
+    }
+
+    public void queryUser(String userName) {
+
+
+        UserDetailView userDetailView = this.userClient.queryUserById(userName);
+
+        assertThat(userDetailView.getUserName()).isEqualTo(userName);
+
+    }
+
+    public void createUser(String userName, String userDescription, String password, Boolean locked) {
+        UserServiceForm userServiceForm = new UserServiceForm();
+        userServiceForm.setUserName(userName);
+        userServiceForm.setUserDescription(userDescription);
+        userServiceForm.setPassword(password);
+        userServiceForm.setLocked(locked);
+        this.userClient.createUser(userServiceForm);
+    }
+}
+
+```
+
+
+```robot
+
+# user_maintenance.robot
+*** Settings ***
+Library   org.ckr.msdemo.adminservice.apitest.keywords.UserKeyword
+
+*** Variables ***
+
+*** Test Cases ***
+create user
+    Query User    ABC
+    Create User     haiyan  haiyan lu   haiyangpassword     true
+
+```
 
 ## Configuration
 

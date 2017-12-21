@@ -833,6 +833,7 @@ To create an unit test case, a junit test class should be create. The package sh
 
 #### Basic Usage of Jmockit
 
+In a classic spring application, many dependencies will be injected into classes. In order to focus on the logic of our class, we use `@Injectable` and `@Mocked` to mock those dependencies so that we could define the result from call for depenencies instead of calling in real.
 
 ```java
 
@@ -871,7 +872,7 @@ When we need some method in a class to be mocked and others not, we need to appl
 
 ```java
 
-public class PartialMockingTest
+public class PartialMockingMockTests
 {
    static class Collaborator
    {
@@ -888,7 +889,7 @@ public class PartialMockingTest
    }
 
    @Test
-   public void partiallyMockingAClassAndItsInstances() {
+   public void testPartiallyMockingAClassAndItsInstances() {
       Collaborator anyInstance = new Collaborator();
 
       new Expectations(Collaborator.class) {{
@@ -912,7 +913,7 @@ public class PartialMockingTest
    }
 
    @Test
-   public void partiallyMockingASingleInstance() {
+   public void testPartiallyMockingASingleInstance() {
       Collaborator collaborator = new Collaborator(2);
 
       new Expectations(collaborator) {{
@@ -941,9 +942,73 @@ public class PartialMockingTest
 
 During development, there is some complicated logic which you divide the logic into several small private methods and call these methods in a method. How do we test such method in our project? Since Jmockit could not support mocking for private methods, we could do it this way,
 1. we give package access to these methods instead of `private` so that these method could be mocked.
-2. then we test these package accessible methodes seperatly.
-3. test the overall method that call these methodes.
+2. then we test these package accessible methods seperatly.
+3. test the overall method that call these methods.
 
+```java
+
+public class Complex {
+    // give package access instead of "private"
+    int add(int a, int b){
+        // IO heavy operation or complicated logic
+        return a + b;
+    }
+
+    // give package access instead of "private"
+    int sub(int a, int b){
+        // IO heavy operation or complicated logic
+        return a - b;
+    }
+
+    public int addSubMul(int a, int b, int c, int d){
+        int addValue = add(a, b);
+        int subValue = sub(c, d);
+        // IO heavy operation or complicated logic
+        return addValue * subValue;
+    }
+}
+
+```
+
+```java
+
+public class ComplexTests {
+    @Tested
+    Complex complex;
+
+    @Test
+    //test package accessible method
+    public void testAdd() throws Exception {
+        int number = complex.add(1, 2);
+        new Verifications(){{
+            assertThat(number).isEqualTo(3);
+        }};
+    }
+
+    @Test
+    //test package accessible method
+    public void testSub() throws Exception {
+        int number = complex.sub(3, 4);
+        new Verifications(){{
+            assertThat(number).isEqualTo(-1);
+        }};
+    }
+
+    @Test
+    // test the overall method that call package accessible methods.
+    public void testAddSubMul() throws Exception {
+        new Expectations(complex){{
+            complex.add(anyInt, anyInt); result = 3;
+            complex.sub(anyInt, anyInt); result = -1;
+        }};
+        int number = complex.addSubMul(1, 2, 3, 4);
+        new Verifications(){{
+            assertThat(number).isEqualTo(-3);
+        }};
+    }
+}
+
+```
 
 
 
@@ -952,6 +1017,32 @@ For those classes query directly to DB like `***Repository` or `***Dao`, we shou
 In a DB unit test, we annotate the test class with `@DbUnitTest`. When running a test case, a temperate in-memory database will start up automatically and sync the data using Liquibase.
 And when your test is done, the database will be shutdown. In this way, there will be no impact to any real application database and you have no worry about polluting database with testing data.
 
+```java
+
+@RunWith(SpringRunner.class)
+@DbUnitTest
+public class UserRepositoryDbTests {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserGroupRepository userGroupRepository;
+
+    @Autowired
+    private TestEntityManager testEntityManager;
+
+    @Test
+    public void testfindByUserName() {
+        this.testEntityManager.persist(new User("xiaoming", "sb"));
+        User user = this.userRepository.findByUserName("xiaoming");
+        assertThat(user.getUserName()).isEqualTo("xiaoming");
+        assertThat(user.getUserDescription()).isEqualTo("sb");
+    }
+}
+
+```
+
 ### Assembly Test
 After unit test passed, we need to have an upper level test called Assembly test.
 Unlike mocked unit test that will mock target service's dependencies, this kind of test will simulate a real call to the target service without mocking.
@@ -959,7 +1050,95 @@ We create an assembly test case with name {the name of the tested class} + "AsmT
 Usually we will annotate the test class with `@AssemblyTest` which actually using `@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)`.
 With this annotation, you also run your test in an embedded in-memory database and use `TestRestTemplate` to perform call to the service's url.
 
+```java
+
+@RunWith(SpringRunner.class)
+@AssemblyTest
+public class JpaRestPaginationServiceAsmTests {
+
+    @Autowired
+    TestRestTemplate testRestTemplate;
+
+    @LocalServerPort
+    private int port;
+
+    private static Logger LOG = LoggerFactory.getLogger(JpaRestPaginationService.class);
+
+    /**
+     * JpaRestPaginationServiceAsmTests template for test case.
+     *
+     * @param userName user name
+     * @param userDesc user description
+     * @param range range
+     * @param sortBy sort by
+     * @param length length
+     * @param firstName first name
+     * @param statusCode status code
+     */
+    public void testTemplate(String userName, String userDesc, String range, String sortBy,
+                             int length, String firstName, int statusCode) {
+
+        HttpHeaders headers = new HttpHeaders();
+        if (!StringUtils.isEmpty(range)) {
+            headers.add("Range", range);
+        }
+        if (!StringUtils.isEmpty(sortBy)) {
+            headers.add("SortBy", sortBy);
+        }
+        headers.setContentType(MediaType.TEXT_PLAIN);
+        HttpEntity<String> entity = new HttpEntity<String>(headers);
+
+        ParameterizedTypeReference<List<UserWithRole>> userWithRoleBean = new ParameterizedTypeReference
+            <List<UserWithRole>>() {
+        };
+
+        String url = "http://localhost:" + port + "/dbaccesstest/user/queryUsersWithRoles?userName=" + userName
+            + "&userDesc=" + userDesc;
+
+        ResponseEntity<List<UserWithRole>> response = testRestTemplate.exchange(url, HttpMethod.GET, entity,
+            userWithRoleBean);
+
+        List<UserWithRole> userWithRoles = response.getBody();
+
+        for (UserWithRole userWithRole :
+            userWithRoles) {
+            LOG.info(userWithRole.toString());
+        }
+        assertThat(userWithRoles.size()).isEqualTo(length);
+        if (userWithRoles != null && userWithRoles.size() > 0 && !StringUtils.isEmpty(sortBy)) {
+            assertThat(userWithRoles.get(0).getUserName()).isEqualTo(firstName);
+        }
+
+        MediaType contentType1 = response.getHeaders().getContentType();
+        LOG.info(contentType1.toString());
+        HttpStatus statusCode1 = response.getStatusCode();
+        LOG.info("statusCode is {}", statusCode1.toString());
+        assertThat(statusCode1.value()).isEqualTo(statusCode);
+    }
+
+    @Test
+    public void testSample() {
+        this.testTemplate("", "", "items=1-20", "-userName",
+            15, "DEF", 200);
+    }
+
+    @Test
+    public void testPageSize() {
+        this.testTemplate("", "", "items=1-14", "-userName",
+            14, "DEF", 200);
+    }
+
+    @Test
+    public void testOrder() {
+        this.testTemplate("", "", "items=1-20", "+userName",
+            15, "ABC", 200);
+    }
+}
+
+```
+
 ### API Test
+
 API test is constructed to simulate the use of the API by end-user applications. We use Feign client and Robot framework for API test.
 Feign client provides a easy to use http client and Robot framework provides key words to perform test.
 
@@ -973,7 +1152,10 @@ For user defined keywords, Refer to below example,
 3. In the test case we import our `UserKeyword` and define the test case with keywords `Query User` and `Create User`.
 4. After run this test case, test result will be shown in the generated log/report.
 
+*note:* robot framework also supports return value from keyword.
+
 ```java
+
 // UserKeyword.java
 public class UserKeyword {
     private static final Logger LOG = LoggerFactory.getLogger(UserKeyword.class);
@@ -985,7 +1167,6 @@ public class UserKeyword {
     }
 
     public void queryUser(String userName) {
-
 
         UserDetailView userDetailView = this.userClient.queryUserById(userName);
 
@@ -1000,6 +1181,14 @@ public class UserKeyword {
         userServiceForm.setPassword(password);
         userServiceForm.setLocked(locked);
         this.userClient.createUser(userServiceForm);
+    }
+
+    public String myKeyword(String arg) {
+        return helperMethod(arg);
+    }
+
+    private String helperMethod(String arg) {
+        return arg.toUpperCase();
     }
 }
 
@@ -1016,7 +1205,8 @@ Library   org.ckr.msdemo.adminservice.apitest.keywords.UserKeyword
 
 *** Test Cases ***
 create user
-    Query User    ABC
+    ${username} =    My Keyword      abc
+    Query User    ${username}
     Create User     haiyan  haiyan lu   haiyangpassword     true
 
 ```
@@ -1049,15 +1239,15 @@ create user
 * service like `UserService`
 * repository `RoleRepository`
 
-**Test classes are named starting with the name of the class they are testing, and ending with `Test`.**
+**Test classes are named starting with the name of the class they are testing, and ending with `Tests`.**
 
-* Good: `HomeController` and `HomeControllerMockTest`
-* Bad: `HomeController` and `HomeControllerMockTests`
+* Good: `HomeController` and `HomeControllerMockTests`
+* Bad: `HomeController` and `HomeControllerMockTest`
 
 **Different kind of test should be indicated in the name.**
 
-* test case that will connect to database. Good: `HomeController` and `HomeControllerDbTest`. Bad: `HomeControllerTest`
-* test case that will use mocking tool.    Good: `HomeController` and `HomeControllerMockTest`. Bad: `HomeControllerTest`
+* test case that will connect to database. Good: `HomeController` and `HomeControllerDbTests`. Bad: `HomeControllerTest`
+* test case that will use mocking tool.    Good: `HomeController` and `HomeControllerMockTests`. Bad: `HomeControllerTest`
 
 ### Method
 **All java methods should be an verb or verb phrase. Method names are written in lowerCamelCase.**

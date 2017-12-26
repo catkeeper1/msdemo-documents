@@ -553,7 +553,6 @@ public class UserToUserRoleMap extends BaseEntity {
 ```
 
 
- 
 
 Please refer the (JPA manual)[http://www.objectdb.com/java/jpa] for detail info about JPA development.
 
@@ -805,14 +804,39 @@ to this folder. Then, place an `<img/>` in the java doc. For example:
 <img src="doc-files/abc.png" alt="demo diagram">
 ```
 
-If you need more example, please refer 
+If you need more example, please refer
 [Collections.java](http://www.docjar.net/html/api/java/util/Collections.java.html). Please note that this example is for an java basic class,
 it is too long and too complicated for this project.
 
-For more detail, please refer 
+For more detail, please refer
 [How to Write Doc Comments for the Javadoc Tool](http://www.oracle.com/technetwork/java/javase/documentation/index-137868.html)
 
 ## DB Deployment
+
+This section introduces DB deployment from development and release management's perspectives.
+Since Liquibase is used in our project, we will utilise this tool to manage database from developers' and release team's perspective.
+
+### Development team's Perspective
+
+Usually developers will get tasks related to database, like developing new function which require either create/modify existing table,
+or fixing some ticket that need to insert data to some tables. Developer will follow below process to do DB deployment.
+1. Create/modify JPA entity if needed; (Refer to section `Components For Tasks` > `Entities` above)
+2. Generate change log using maven `mvn clean compile -Dmsdemo.skipGenLiquibaseXml=false`;
+3. Check and merge generated changelog in `target\liquibaseXml` into main changelog in `resources` folder;
+4. Add changelog/changeset for ticket/defect fixing;
+5. Using `mvn liquibase:update` to sync your change to development database.
+
+**Remember to double check your database url since `mvn liquibase:update` will update database**
+
+### Release team's Perspective
+
+For release team to perform database deployment, we would like to choose a different appoach.
+Normally those deployment environments are sensitive like UAT/production database.
+Liquibase should not change anything to these enviroment directly.
+Liquibase provides `liquibase:updateSQL` command to generate SQL scripts.
+After properly check to these scripts, they could be package and send to release team to deploy using corresponding tools, like `sqlplus` for oracle.
+
+
 
 ## Testing
 

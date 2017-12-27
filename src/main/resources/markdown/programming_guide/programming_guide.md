@@ -566,7 +566,7 @@ the web service and annotated with `@FeignClient` and specify its configuration 
 
 After that you just define the method the same as the web service including the request mapping.
 Then you can call the web service method like a local method and Feign client will help to call the web service.
-By say `strongly typed`, it means that feign client will mapped the response body with the return type of the web service method.
+By saying `strongly typed`, it means that feign client will mapped the response body with the return type of the web service method.
 
 ```java
 @FeignClient(value = ADMIN_SERVICE, path = ADMIN_SERVICE_CONTEXT)
@@ -835,6 +835,7 @@ Normally those deployment environments are sensitive like UAT/production databas
 Liquibase should not change anything to these enviroment directly.
 Liquibase provides `liquibase:updateSQL` command to generate SQL scripts.
 After properly check to these scripts, they could be package and send to release team to deploy using corresponding tools, like `sqlplus` for oracle.
+Refer to [Liquibase Offline Database Support](http://www.liquibase.org/documentation/offline.html) for more detail.
 
 
 
@@ -1229,9 +1230,118 @@ Library   org.ckr.msdemo.adminservice.apitest.keywords.UserKeyword
 
 *** Test Cases ***
 create user
+    # robot framework supports return value from keyword.
     ${username} =    My Keyword      abc
     Query User    ${username}
     Create User     haiyan  haiyan lu   haiyangpassword     true
+
+```
+
+##### Robot framework - Handle whitespace
+
+Refer to [Robot framework - Handle whitespace](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#handling-whitespace)
+
+```robot
+
+# user_maintenance.robot
+*** Settings ***
+*** Variables ***
+*** Test Cases ***
+One Space
+    Should Be Equal    ${SPACE}          \ \
+
+Four Spaces
+    Should Be Equal    ${SPACE * 4}      \ \ \ \ \
+
+Ten Spaces
+    Should Be Equal    ${SPACE * 10}     \ \ \ \ \ \ \ \ \ \ \
+
+Quoted Space
+    Should Be Equal    "${SPACE}"        " "
+
+Quoted Spaces
+    Should Be Equal    "${SPACE * 2}"    " \ "
+
+Empty
+    Should Be Equal    ${EMPTY}          \
+
+```
+
+##### Robot framework - Default values to keywords
+
+It is often useful that some of the arguments that a keyword uses have default values.
+In Java one method can have several implementations with different signatures. Robot Framework regards all these implementations as one keyword, which can be used with different arguments. This syntax can thus be used to provide support for the default values. This is illustrated by the example below:
+
+```java
+
+public class UserKeyword {
+    private static final Logger LOG = LoggerFactory.getLogger(UserKeyword.class);
+
+    UserClient userClient;
+
+    public UserKeyword() {
+        this.userClient = (UserClient) BeanContainer.getBean(UserClient.class);
+    }
+
+    public void queryUser(String userName) {
+        UserDetailView userDetailView = this.userClient.queryUserById(userName);
+        assertThat(userDetailView.getUserName()).isEqualTo(userName);
+    }
+
+    public void queryUser() {
+        queryUser("defaultUser");
+    }
+
+    public void createUser(String userName, String userDescription, String password, Boolean locked) {
+        UserServiceForm userServiceForm = new UserServiceForm();
+        userServiceForm.setUserName(userName);
+        userServiceForm.setUserDescription(userDescription);
+        userServiceForm.setPassword(password);
+        userServiceForm.setLocked(locked);
+        this.userClient.createUser(userServiceForm);
+    }
+
+    public void createUser(String userName, String userDescription, String password) {
+        createUser(userName, userDescription, password, false);
+    }
+
+    public void createUser(String userName, String userDescription) {
+        createUser(userName, userDescription, "defaultPassword");
+    }
+
+    public void createUser(String userName) {
+        createUser(userName, "default description");
+    }
+
+    public void createUser() {
+        createUser("defaultUser");
+    }
+}
+
+```
+
+```robot
+
+# user_maintenance.robot
+*** Settings ***
+Library   org.ckr.msdemo.adminservice.apitest.keywords.UserKeyword
+
+*** Variables ***
+
+*** Test Cases ***
+create user default
+    # query user with username defaultUser
+    Query User
+    # query user with all prameter specified
+    Create User     haiyan  haiyan lu   haiyangpassword     true
+    # query user with default locked=false
+    Create User     haiyan  haiyan lu   haiyangpassword
+    # query user with default locked=false and password=defaultPassword
+    Create User     haiyan  haiyan lu
+    # query user with default locked, password and description
+    Create User     haiyan
+    # query user with default locked, password, description and user name
+    Create User
 
 ```
 

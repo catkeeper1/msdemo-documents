@@ -1345,6 +1345,76 @@ create user default
 
 ```
 
+##### Robot framework - Free keyword arguments
+
+What this `Free keyword arguments` means is that keywords can receive all arguments that use the `name=value` syntax. We could easily define our test case with less password for method with lots of parameters.
+An limitation is that free keyword argument names must always be strings.
+
+> Note
+1. A keyword supporting kwargs cannot have more than one signature.
+2. The type of the kwargs argument must be exactly java.util.Map, not any of its sub types.
+
+```java
+
+public class UserKeyword {
+    private static final Logger LOG = LoggerFactory.getLogger(UserKeyword.class);
+
+    UserClient userClient;
+
+    public UserKeyword() {
+        this.userClient = (UserClient) BeanContainer.getBean(UserClient.class);
+    }
+
+    public void queryUser(String userName) {
+        UserDetailView userDetailView = this.userClient.queryUserById(userName);
+        assertThat(userDetailView.getUserName()).isEqualTo(userName);
+    }
+
+    public void queryUser() {
+        queryUser("defaultUser");
+    }
+
+    public void createUser(String userName, String userDescription, String password, Boolean locked) {
+        UserServiceForm userServiceForm = new UserServiceForm();
+        userServiceForm.setUserName(userName);
+        userServiceForm.setUserDescription(userDescription);
+        userServiceForm.setPassword(password);
+        userServiceForm.setLocked(locked);
+        this.userClient.createUser(userServiceForm);
+    }
+
+    private static String nvl(String value, String alternateValue) {
+        if (value == null)
+            return alternateValue;
+
+        return value;
+    }
+
+    public void createUser2(Map<String, Object> kwargs) {
+
+        String userName = (String) kwargs.get("userName");
+        String userDescription = (String) kwargs.get("userDescription");
+        String password = (String) kwargs.get("password");
+        String locked = (String) kwargs.get("locked");
+
+        if(userName != null){
+            UserServiceForm userServiceForm = new UserServiceForm();
+            userServiceForm.setUserName(userName);
+            userServiceForm.setUserDescription(nvl(userDescription, "default desc"));
+            userServiceForm.setPassword(nvl(password, "defaultpassword"));
+            userServiceForm.setLocked(Boolean.valueOf(nvl(locked, "false")));
+            this.userClient.createUser(userServiceForm);
+        }else
+            throw new ApplicationException("no user name specified.");
+
+    }
+}
+
+```
+
+
+
+
 ## Configuration
 
 ### Security

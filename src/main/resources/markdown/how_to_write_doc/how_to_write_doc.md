@@ -1,7 +1,7 @@
 <h1><p style="text-align: center;">How To Write A Document</p></h1>
 
 Table of content:
-[TOC levels=2-4]
+[TOC]
 
 ## Overview
 This document is an reference about how to write a document in this repository. 

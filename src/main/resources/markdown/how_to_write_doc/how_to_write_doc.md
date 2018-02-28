@@ -3,13 +3,13 @@
 Table of content:
 [TOC levels=2-4]
 
-##Overview
+## Overview
 This document is an reference about how to write a document in this repository. 
 If you are new to this project and you are editing a document, please keep this document opening.
     
 
 
-##Create An Document
+## Create An Document
 The first step for creating an document is creating a folder for this document under `src/main/resources/markdown` 
 or its sub folder. The name of this folder should reflect the subject of the document and match regular expression
 `^[a-z|A-Z|0-9|_]*$`. For example, the folder name for this document is "how_to_write_doc". This folder should
@@ -21,8 +21,8 @@ document. If there is too much content for a document, other "md" files can be c
 hyperlink. However, this approach is not recommended because the "table of content" `[TOC]` will not be translated
 properly.
 
-##How To Use Markdown
-###Why Markdown Is Used
+## How To Use Markdown
+### Why Markdown Is Used
 Markdown is a lightweight markup language with plain text formatting syntax. Markdown is choose as documentation 
 format because:
 
